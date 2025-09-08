@@ -1,0 +1,26 @@
+name: Deploy to Azure Blob Storage
+
+on:
+  push:
+    branches:
+      - main  # 또는 배포 브랜치명
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Upload to Azure Blob Storage
+        uses: azure/cli@v2
+        with:
+          azcliversion: 2.53.0
+
+      - name: Deploy files to $web container
+        run: |
+          az storage blob upload-batch \
+            --account-name ${{ secrets.AZURE_STORAGE_ACCOUNT }} \
+            --account-key ${{ secrets.AZURE_STORAGE_KEY }} \
+            -d '$web' \
+            -s .  # 전체 파일 업로드
