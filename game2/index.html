@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>두 마리 피카 게임</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        #square, #pika1, #pika2 {
+            box-shadow: 8px 16px 32px rgba(0,0,0,0.4);
+            border-radius: 10px;
+            /* 3D 입체감 */
+            transform: perspective(300px) rotateX(20deg) rotateY(20deg);
+            transition: transform 0.2s;
+        }
+        #square {
+            /* 움직일 때 살짝 더 회전하는 효과 */
+            will-change: transform;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameArea">
+        <div id="square"></div>
+        <img id="pika1" src="../img/pika.png" alt="pika1" style="position:absolute; width:40px; height:40px;">
+        <img id="pika2" src="../img/pika.png" alt="pika2" style="position:absolute; width:40px; height:40px;">
+    </div>
+    <div id="hearts" style="text-align:center; margin-top:10px; font-size:2em;">
+        ❤️❤️❤️❤️❤️
+    </div>
+    <div id="scoreBoard" style="text-align:center; font-size:2em; margin-top:10px;">점수: 0</div>
+    <div id="gameOver" style="display:none; text-align:center; font-size:2em; color:red; margin-top:20px;">
+        끝<br>
+        <button id="restartBtn" style="font-size:1em; margin-top:10px;">다시하기</button>
+    </div>
+    <script src="./game.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "square-move-game",
+  "version": "1.0.0",
+  "description": "A simple game where a square moves in response to arrow key presses.",
+  "main": "game2/index.html",
+  "scripts": {
+    "start": "live-server game2"
+  },
+  "keywords": [
+    "game",
+    "square",
+    "movement"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {},
+  "devDependencies": {
+    "live-server": "^1.2.1"
+  }
+}
