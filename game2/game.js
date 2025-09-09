@@ -34,7 +34,7 @@ function startGameWithName() {
     document.getElementById('pika1').style.display = 'block';
     document.getElementById('pika2').style.display = 'block';
     // 사용자 이름 표시
-    userNameDisplay.textContent = `👤 ${playerName}`;
+    userNameDisplay.textContent = `👤: ${playerName}`;
     userNameDisplay.style.display = 'block';
     restartGame();
     rankingBoard.style.display = 'block';
@@ -364,14 +364,17 @@ function restartGame() {
 async function fetchAndShowRanking() {
     const { data, error } = await window.fetchTop10();
     if (error) {
-        rankingList.innerHTML = '<li>랭킹을 불러올 수 없습니다</li>';
+        rankingList.innerHTML = '<div>랭킹을 불러올 수 없습니다</div>';
         return;
     }
-    rankingList.innerHTML = '';
+    let html = `<table style="width:100%;border-collapse:collapse;text-align:center;table-layout:fixed;">
+        <thead><tr style="background:#ffe082;"><th style="width:20%">순위</th><th style="width:50%">이름</th><th style="width:30%">점수</th></tr></thead><tbody>`;
     data.forEach((row, idx) => {
-        const highlight = row.name === playerName ? ' style="color:#d2691e;font-weight:bold;"' : '';
-        rankingList.innerHTML += `<li${highlight}>${row.name} <b>${row.score}</b></li>`;
+        const highlight = row.name === playerName ? ' style="color:#d2691e;font-weight:bold;background:#fff3c0;"' : '';
+        html += `<tr${highlight}><td>${idx+1}</td><td>${row.name}</td><td>${row.score}</td></tr>`;
     });
+    html += '</tbody></table>';
+    rankingList.innerHTML = html;
 }
 
 // 다시하기 버튼 이벤트

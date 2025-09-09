@@ -12,6 +12,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Delete all blobs in $web before upload
+        uses: azure/cli@v2
+        with:
+          azcliversion: 2.53.0
+          inlineScript: |
+            az storage blob delete-batch \
+              --account-name ${{ secrets.AZURE_STORAGE_ACCOUNT }} \
+              --account-key ${{ secrets.AZURE_STORAGE_KEY }} \
+              --source '$web'
+
       - name: Upload to Azure Blob Storage
         uses: azure/cli@v2
         with:

@@ -1,35 +1,40 @@
-# Square Move Game
 
-This project is a simple web-based game where a square moves in response to arrow key presses. The game is built using HTML, CSS, and JavaScript.
+# Square Move Game (두 마리 피카 게임)
 
-## Project Structure
+이 프로젝트는 HTML, CSS, JavaScript, Supabase를 활용한 웹 기반 미니게임입니다. 네모 캐릭터를 드래그로 움직여 두 마리 피카를 잡고, 점수를 랭킹 보드에 기록할 수 있습니다.
 
-```
-square-move-game
-├── game1
-│   ├── index.html       # Main HTML file
-│   ├── game.js          # JavaScript file for game logic
-│   └── styles.css       # CSS file for styling
-├── game2
-│   ├── index.html       # Main HTML file
-│   ├── game.js          # JavaScript file for game logic
-│   └── styles.css       # CSS file for styling
-├── package.json          # NPM configuration file
-└── README.md             # Project documentation
-```
 
-## Getting Started
+## 주요 기능
 
-To run the game, follow these steps:
+- 마우스/터치로 네모 캐릭터를 드래그하여 이동
+- 우클릭(또는 모바일 터치)으로 총알 발사, 피카를 맞추면 점수 획득
+- 피카가 1초마다 랜덤 방향으로 총알을 발사, 맞으면 하트 감소
+- 하트가 모두 사라지면 게임 오버
+- 게임 시작 전 사용자 이름 입력 필수
+- 게임 종료 시 이름/점수가 Supabase 랭킹 테이블에 저장됨
+- 하단에 Top 10 랭킹 보드 표시 (내 점수는 강조)
+- "사용자 교체" 버튼으로 언제든 이름을 바꿔서 플레이 가능
 
-1. Clone the repository to your local machine.
-2. Navigate to the project directory.
-3. Open `game2/index.html` in a web browser.
 
-## Controls
+## 실행 방법
 
-- Use the arrow keys (Up, Down, Left, Right) to move the square around the game area.
+1. 저장소를 클론합니다.
+2. 프로젝트 폴더로 이동합니다.
+3. `game2/index.html` 파일을 웹 브라우저(Chrome 권장)로 엽니다.
 
-## License
+> **Supabase 연동:**
+> - 이미 Supabase 프로젝트와 랭킹 테이블이 연동되어 있습니다.
+> - 별도의 서버나 DB 설정 없이 바로 랭킹 기능을 사용할 수 있습니다.
 
-This project is open source and available under the MIT License.
+
+## 조작법
+
+- **캐릭터 이동:** 마우스 드래그 또는 터치 드래그
+- **총알 발사:** PC는 우클릭, 모바일은 캐릭터 외곽을 터치
+- **게임 재시작:** "다시하기" 버튼 클릭
+- **사용자 교체:** 하단 "사용자 교체" 버튼 클릭 후 이름 입력
+
+
+## 라이선스
+
+MIT License로 자유롭게 사용하실 수 있습니다.

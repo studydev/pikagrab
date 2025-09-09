@@ -36,15 +36,18 @@ body {
 #rankingBoard {
     font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
     letter-spacing: 0.01em;
+    padding: 10px !important;
+    box-sizing: border-box;
+    text-align: center;
 }
-#rankingBoard ol {
-    margin: 0;
-    padding-left: 1.2em;
+#rankingBoard table {
+    width: 100%;
+    margin: 0 auto;
+    table-layout: fixed;
 }
-#rankingBoard li {
-    margin-bottom: 2px;
-    font-size: 1em;
-    line-height: 1.5;
+#rankingBoard th, #rankingBoard td {
+    padding: 4px 0;
+    word-break: break-all;
 }
 #nameInputModal {
     display: none;
