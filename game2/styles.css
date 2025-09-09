@@ -32,3 +32,46 @@ body {
     z-index: 10;
     box-shadow: 0 0 8px #ff0;
 }
+
+#rankingBoard {
+    font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
+    letter-spacing: 0.01em;
+}
+#rankingBoard ol {
+    margin: 0;
+    padding-left: 1.2em;
+}
+#rankingBoard li {
+    margin-bottom: 2px;
+    font-size: 1em;
+    line-height: 1.5;
+}
+#nameInputModal {
+    display: none;
+    position: fixed;
+    left: 0; top: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+#nameInputModal input {
+    font-size: 1.1em;
+    padding: 5px 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    margin-bottom: 5px;
+}
+#nameInputModal button {
+    font-size: 1em;
+    padding: 5px 15px;
+    border-radius: 5px;
+    border: none;
+    background: #ffe082;
+    color: #333;
+    cursor: pointer;
+    margin-top: 5px;
+}
+#nameInputModal button:hover {
+    background: #ffd54f;
+}

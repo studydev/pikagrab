@@ -1,4 +1,71 @@
 const square = document.getElementById('square');
+let playerName = '';
+const userNameDisplay = document.getElementById('userNameDisplay');
+const changeUserBtn = document.getElementById('changeUserBtn');
+const nameInputModal = document.getElementById('nameInputModal');
+const playerNameInput = document.getElementById('playerNameInput');
+const nameSubmitBtn = document.getElementById('nameSubmitBtn');
+let gameActive = false;
+const rankingBoard = document.getElementById('rankingBoard');
+const rankingList = document.getElementById('rankingList');
+// 이름 입력 모달 표시 및 처리
+function showNameInputModal() {
+    nameInputModal.style.display = 'flex';
+    playerNameInput.value = '';
+    playerNameInput.focus();
+}
+
+function hideNameInputModal() {
+    nameInputModal.style.display = 'none';
+}
+
+function startGameWithName() {
+    const name = playerNameInput.value.trim();
+    if (!name) {
+        alert('이름을 입력하세요!');
+    gameActive = false;
+        playerNameInput.focus();
+        return;
+    }
+    playerName = name;
+    hideNameInputModal();
+    // square, pika1, pika2 보이기
+    document.getElementById('square').style.display = 'block';
+    document.getElementById('pika1').style.display = 'block';
+    document.getElementById('pika2').style.display = 'block';
+    // 사용자 이름 표시
+    userNameDisplay.textContent = `👤 ${playerName}`;
+    userNameDisplay.style.display = 'block';
+    restartGame();
+    rankingBoard.style.display = 'block';
+    fetchAndShowRanking();
+}
+
+nameSubmitBtn.addEventListener('click', startGameWithName);
+playerNameInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') startGameWithName();
+});
+
+// 게임 진입 시 이름 입력 강제
+window.addEventListener('DOMContentLoaded', () => {
+    // square, pika1, pika2 숨기기 (새로고침 시)
+    document.getElementById('square').style.display = 'none';
+    document.getElementById('pika1').style.display = 'none';
+    document.getElementById('pika2').style.display = 'none';
+    userNameDisplay.style.display = 'none';
+    showNameInputModal();
+// 사용자 교체 버튼 동작
+changeUserBtn.addEventListener('click', () => {
+    // 게임 화면 요소 숨기기
+    document.getElementById('square').style.display = 'none';
+    document.getElementById('pika1').style.display = 'none';
+    document.getElementById('pika2').style.display = 'none';
+    userNameDisplay.style.display = 'none';
+    gameActive = false;
+    showNameInputModal();
+});
+    gameActive = true;
+});
 const pika1 = document.getElementById('pika1');
 const pika2 = document.getElementById('pika2');
 let x = 0;
@@ -35,6 +102,7 @@ pikas.forEach(placePikaRandom);
 let isDragging = false;
 let offsetX = 0;
 let offsetY = 0;
+let lastX = 0, lastY = 0;
 
 // 마우스 이벤트
 square.addEventListener('mousedown', function(e) {
@@ -267,11 +335,16 @@ function updateScore() {
 }
 
 // 게임 오버 처리 함수
-function gameOver() {
+async function gameOver() {
     gameOverDiv.style.display = 'block';
     square.style.display = 'none';
     pikas.forEach(pika => pika.style.display = 'none');
     heartsDiv.style.display = 'none';
+    // 점수 upsert
+    if (playerName) {
+        await window.upsertScore(playerName, score);
+        fetchAndShowRanking();
+    }
 }
 
 // 다시하기 함수
@@ -285,6 +358,20 @@ function restartGame() {
     pikas.forEach(pika => pika.style.display = 'block');
     updateHearts();
     updateScore(); // 점수판 초기화
+    fetchAndShowRanking();
+}
+// 랭킹 보드 표시 함수
+async function fetchAndShowRanking() {
+    const { data, error } = await window.fetchTop10();
+    if (error) {
+        rankingList.innerHTML = '<li>랭킹을 불러올 수 없습니다</li>';
+        return;
+    }
+    rankingList.innerHTML = '';
+    data.forEach((row, idx) => {
+        const highlight = row.name === playerName ? ' style="color:#d2691e;font-weight:bold;"' : '';
+        rankingList.innerHTML += `<li${highlight}>${row.name} <b>${row.score}</b></li>`;
+    });
 }
 
 // 다시하기 버튼 이벤트
