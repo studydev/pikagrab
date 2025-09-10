@@ -3,7 +3,7 @@ name: Deploy to Azure Blob Storage
 on:
   push:
     branches:
-      - main  # 또는 배포 브랜치명
+      - main
 
 jobs:
   deploy:
@@ -17,31 +17,55 @@ jobs:
         with:
           azcliversion: 2.53.0
           inlineScript: |
+            set -euo pipefail
             az storage blob delete-batch \
               --account-name ${{ secrets.AZURE_STORAGE_ACCOUNT }} \
-              --account-key ${{ secrets.AZURE_STORAGE_KEY }} \
+              --account-key  ${{ secrets.AZURE_STORAGE_KEY }} \
               --source '$web'
 
-      - name: Upload all game* folders and allowed files to Azure Blob Storage
+      - name: Upload /img folder
         uses: azure/cli@v2
         with:
           azcliversion: 2.53.0
           inlineScript: |
+            set -euo pipefail
             az storage blob upload-batch \
               --account-name ${{ secrets.AZURE_STORAGE_ACCOUNT }} \
-              --account-key ${{ secrets.AZURE_STORAGE_KEY }} \
-              -d '$web/img' \
-              -s ./img
-            az storage blob upload-batch \
-              --account-name ${{ secrets.AZURE_STORAGE_ACCOUNT }} \
-              --account-key ${{ secrets.AZURE_STORAGE_KEY }} \
+              --account-key  ${{ secrets.AZURE_STORAGE_KEY }} \
               -d '$web' \
-              -s ./ \
-              --pattern "index.html;error.html;favicon.ico"
+              --destination-path 'img' \
+              -s ./img
+
+      - name: Upload selected root files
+        uses: azure/cli@v2
+        with:
+          azcliversion: 2.53.0
+          inlineScript: |
+            set -euo pipefail
+            for f in index.html error.html favicon.ico; do
+              if [ -f "$f" ]; then
+                az storage blob upload \
+                  --account-name ${{ secrets.AZURE_STORAGE_ACCOUNT }} \
+                  --account-key  ${{ secrets.AZURE_STORAGE_KEY }} \
+                  -c '$web' \
+                  -f "$f" \
+                  -n "$f"
+              fi
+            done
+
+      - name: Upload game* folders
+        uses: azure/cli@v2
+        with:
+          azcliversion: 2.53.0
+          inlineScript: |
+            set -euo pipefail
+            shopt -s nullglob
             for d in ./game*/ ; do
+              base="$(basename "$d")"
               az storage blob upload-batch \
                 --account-name ${{ secrets.AZURE_STORAGE_ACCOUNT }} \
-                --account-key ${{ secrets.AZURE_STORAGE_KEY }} \
-                -d "$web/$(basename $d)" \
+                --account-key  ${{ secrets.AZURE_STORAGE_KEY }} \
+                -d '$web' \
+                --destination-path "$base" \
                 -s "$d"
             done
