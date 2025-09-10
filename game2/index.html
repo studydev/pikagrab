@@ -5,38 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>두 마리 피카 게임</title>
     <link rel="stylesheet" href="styles.css">
-    <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100vw;
-            min-height: 100vh;
-            background: #f0f0f0;
-        }
-        #gameArea {
-            width: 100vw;
-            max-width: 420px;
-            height: 100vw;
-            max-height: 420px;
-            background: #fff;
-            border: 2px solid #333;
-            margin: 0 auto;
-            position: relative;
-            touch-action: none;
-            box-sizing: border-box;
-        }
-        #square, #pika1, #pika2 {
-            box-shadow: 8px 16px 32px rgba(0,0,0,0.4);
-            border-radius: 10px;
-            /* 3D 입체감 */
-            transform: perspective(300px) rotateX(20deg) rotateY(20deg);
-            transition: transform 0.2s;
-        }
-        #square {
-            /* 움직일 때 살짝 더 회전하는 효과 */
-            will-change: transform;
-        }
-    </style>
 </head>
 <body>
     <div id="gameArea">

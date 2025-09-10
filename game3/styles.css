@@ -12,14 +12,16 @@ html, body {
     transform: perspective(300px) rotateX(20deg) rotateY(20deg);
     transition: transform 0.2s;
 }
+
 #gameArea {
     width: 400px;
     height: 400px;
     max-width: 420px;
+    height: 100vw;
     max-height: 420px;
     background: #fff;
     border: 2px solid #333;
-    margin: 50px auto;
+    margin: 50px auto 0 auto !important;
     position: relative;
     touch-action: none;
     box-sizing: border-box;
@@ -37,7 +39,6 @@ html, body {
     border-radius: 8px;
     transform: perspective(120px) rotateX(10deg) rotateY(10deg);
     transition: transform 0.1s;
-    /* 움직일 때 살짝 더 회전하는 효과 */
     will-change: transform;
 }
 .bullet {

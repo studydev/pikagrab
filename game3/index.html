@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<title>두 마리 피카 게임</title>
+	<link rel="stylesheet" href="styles.css">
+
+</head>
+<body>
+	<div id="gameArea">
+		<div id="square" style="display:none;"></div>
+		<img id="pika1" src="../img/pika.png" alt="pika1" style="position:absolute; width:10vw; height:10vw; max-width:40px; max-height:40px; display:none;">
+		<img id="pika2" src="../img/pika.png" alt="pika2" style="position:absolute; width:10vw; height:10vw; max-width:40px; max-height:40px; display:none;">
+	</div>
+	<div id="userNameDisplay" style="text-align:center; font-size:1.3em; margin-top:10px; display:none;"></div>
+	<div id="hearts" style="text-align:center; margin-top:10px; font-size:2em;">
+		❤️❤️❤️❤️❤️
+	</div>
+	<div id="scoreBoard" style="text-align:center; font-size:2em; margin-top:10px;">점수: 0</div>
+	<div id="rankingBoard" style="text-align:center; font-size:1.2em; margin:20px auto 0; max-width:340px; background:#fffbe7; border-radius:10px; box-shadow:0 2px 8px #0002; padding:10px; display:none;">
+		<b>🏆 랭킹 Top 10</b>
+		<div id="rankingList" style="margin:10px 0 0 0;"></div>
+	</div>
+	<div id="nameInputModal" style="display:none; position:fixed; left:0; top:0; width:100vw; height:100vh; background:#0008; z-index:1000; align-items:center; justify-content:center;">
+		<div style="background:#fff; border-radius:10px; padding:30px 20px; box-shadow:0 2px 16px #0004; text-align:center;">
+			<div style="font-size:1.2em; margin-bottom:10px;">사용자 이름을 입력하세요</div>
+			<input id="playerNameInput" maxlength="12" style="font-size:1.1em; padding:5px 10px; border-radius:5px; border:1px solid #ccc;" placeholder="이름" autofocus>
+			<br><button id="nameSubmitBtn" style="margin-top:10px; font-size:1em;">시작</button>
+		</div>
+	</div>
+	<div id="gameOver" style="display:none; text-align:center; font-size:2em; color:red; margin-top:20px;">
+		끝<br>
+		<button id="restartBtn" style="font-size:1em; margin-top:10px;">다시하기</button>
+	</div>
+	<button id="changeUserBtn" style="display:block; margin:30px auto 0; font-size:1em; padding:7px 18px; border-radius:7px; background:#ffe082; border:none; color:#333; cursor:pointer;">사용자 교체</button>
+	<div id="easterEggBox" style="width:1px; height:1px; background:#222; margin:4px auto 0; border-radius:3px; cursor:pointer; opacity:0.3;"></div>
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+	<script src="./supabase.js"></script>
+	<script src="./game.js"></script>
+</body>
+</html>
