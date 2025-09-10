@@ -43,5 +43,5 @@ jobs:
                 --account-name ${{ secrets.AZURE_STORAGE_ACCOUNT }} \
                 --account-key ${{ secrets.AZURE_STORAGE_KEY }} \
                 -d "$web/$(basename $d)" \
-                -s $d
+                -s "$d"
             done
