@@ -22,7 +22,7 @@ jobs:
               --account-key ${{ secrets.AZURE_STORAGE_KEY }} \
               --source '$web'
 
-      - name: Upload all (except .azureignore) to Azure Blob Storage
+      - name: Upload all game* folders and allowed files to Azure Blob Storage
         uses: azure/cli@v2
         with:
           azcliversion: 2.53.0
@@ -30,6 +30,18 @@ jobs:
             az storage blob upload-batch \
               --account-name ${{ secrets.AZURE_STORAGE_ACCOUNT }} \
               --account-key ${{ secrets.AZURE_STORAGE_KEY }} \
+              -d '$web/img' \
+              -s ./img
+            az storage blob upload-batch \
+              --account-name ${{ secrets.AZURE_STORAGE_ACCOUNT }} \
+              --account-key ${{ secrets.AZURE_STORAGE_KEY }} \
               -d '$web' \
               -s ./ \
-              --exclude-pattern '.git*;README.md;package.json;.github*'
+              --pattern "index.html;error.html;favicon.ico"
+            for d in ./game*/ ; do
+              az storage blob upload-batch \
+                --account-name ${{ secrets.AZURE_STORAGE_ACCOUNT }} \
+                --account-key ${{ secrets.AZURE_STORAGE_KEY }} \
+                -d '$web/$(basename $d)' \
+                -s $d
+            done
