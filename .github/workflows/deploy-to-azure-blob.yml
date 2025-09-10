@@ -31,4 +31,5 @@ jobs:
               --account-name ${{ secrets.AZURE_STORAGE_ACCOUNT }} \
               --account-key ${{ secrets.AZURE_STORAGE_KEY }} \
               -d '$web' \
-              -s ./
+              -s ./ \
+              --exclude-pattern '.git*;README.md;package.json;.github*'
