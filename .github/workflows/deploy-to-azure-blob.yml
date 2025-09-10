@@ -42,6 +42,6 @@ jobs:
               az storage blob upload-batch \
                 --account-name ${{ secrets.AZURE_STORAGE_ACCOUNT }} \
                 --account-key ${{ secrets.AZURE_STORAGE_KEY }} \
-                -d '$web/$(basename $d)' \
+                -d "$web/$(basename $d)" \
                 -s $d
             done
