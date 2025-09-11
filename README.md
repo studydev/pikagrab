@@ -1,11 +1,11 @@
 
 # 피카츄 잡는 게임
 
-데모 실행: [https://pikagrab.z12.web.core.windows.net/](https://pikagrab.z12.web.core.windows.net/)
-제작 계기: [http://www.studydev.com/development/초등학생-아들-바이브-코딩-01-피카츄-잡기/](http://www.studydev.com/development/초등학생-아들-바이브-코딩-01-피카츄-잡기/)
+데모 실행: [https://pikagrab.z12.web.core.windows.net/](https://pikagrab.z12.web.core.windows.net/)  
+제작 계기: [http://www.studydev.com/development/초등학생-아들-바이브-코딩-01-피카츄-잡기/](http://www.studydev.com/development/초등학생-아들-바이브-코딩-01-피카츄-잡기/)  
 
 이 프로젝트는 HTML, CSS, JavaScript, Supabase를 활용한 바이브코딩 기반의 웹 미니게임입니다.  
-캐릭터를 드래그 또는 터치로 움직이(game1)거나 총을 발사(game2)하여 피카츄를 잡고, 점수를 랭킹 보드에 기록할 수 있습니다.
+캐릭터를 드래그 또는 터치로 움직이(game1)거나 총을 발사(game2)하여 피카츄를 잡고, 점수를 랭킹 보드에 기록할 수 있습니다.  
 
 
 ## 주요 기능
@@ -29,11 +29,11 @@
 3. `game3/index.html` 파일을 웹 브라우저(Chrome 권장)로 엽니다.
 
 > **Supabase 연동:**
-> - 이미 Supabase 프로젝트와 랭킹 테이블이 연동되어 있습니다.
-> - 별도의 서버나 DB 설정 없이 바로 랭킹 기능을 사용할 수 있습니다.
+> - 이미 Supabase 프로젝트와 랭킹 테이블이 연동되어 있습니다. 
+> - 별도의 서버나 DB 설정 없이 바로 랭킹 기능을 사용할 수 있습니다.  
 
-> **Azure Blob Storage 연동:**
-> Github -> Settings -> Security -> secrets and variables -> Actions 메뉴에서 secrets 탭에서 Repository secrets에 `AZURE_STORAGE_ACCOUNT`, `AZURE_STORAGE_KEY`를 추가
+> **Azure Blob Storage 연동:**  
+> Github -> Settings -> Security -> secrets and variables -> Actions 메뉴에서 secrets 탭에서 Repository secrets에 `AZURE_STORAGE_ACCOUNT`, `AZURE_STORAGE_KEY`를 추가  
 > - Azure Blob Storage -> Security + networking -> Access Keys 메뉴 에서 `Storage account name` 와 `Key1` 을 위 항목에 맞추어 각각 하나씩 추가
 
 
