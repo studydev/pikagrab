@@ -1,0 +1,509 @@
+// 모바일 터치 입력용 변수
+let isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+let touchMove = {active: false, id: null, x: 0, y: 0, dx: 0, dy: 0};
+let touchShoot = {active: false, id: null, x: 0, y: 0, dx: 0, dy: 0};
+// Game 5: Brawl Stars-like Top-down Shooter (기본 샘플)
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+canvas.width = 800;
+canvas.height = 480;
+
+const player = { x: 400, y: 240, r: 22, color: '#4ecdc4', speed: 4, vx: 0, vy: 0, angle: 0, hp: 10, maxHp: 10 };
+let keys = {};
+let bullets = [];
+let enemies = [];
+let cakes = [];
+let charge = 0;
+let maxCharge = 9;
+let canBigShot = 0;
+let gameOver = false;
+let restartBtn = { x: 0, y: 0, w: 220, h: 60, visible: false };
+let score = 0;
+let highScore = Number(localStorage.getItem('game5_highScore') || 0);
+
+function spawnEnemy() {
+  const angle = Math.random() * Math.PI * 2;
+  const dist = 300 + Math.random() * 100;
+  const ex = player.x + Math.cos(angle) * dist;
+  const ey = player.y + Math.sin(angle) * dist;
+  // 5% 초강력, 10% 느린 공격형, 10% 빠른, 20% 강한, 나머지 일반
+  const roll = Math.random();
+  if (roll < 0.05) {
+    enemies.push({ x: ex, y: ey, r: 48, color: '#ffd700', hp: 30, maxHp: 30, strong: 'super', vx: 0, vy: 0 });
+  } else if (roll < 0.15) {
+    // 공격이 새고 느린 적: 빨간색, HP 8, 느림, 공격력 2, 점수 7
+    enemies.push({ x: ex, y: ey, r: 26, color: '#e80ba6ff', hp: 8, maxHp: 8, strong: 'slowAttacker', vx: 0, vy: 0 });
+  } else if (roll < 0.25) {
+    enemies.push({ x: ex, y: ey, r: 18, color: '#2ecc40', hp: 2, maxHp: 2, strong: 'fast', vx: 0, vy: 0 });
+  } else if (roll < 0.45) {
+    enemies.push({ x: ex, y: ey, r: 32, color: '#a259e6', hp: 10, maxHp: 10, strong: true, vx: 0, vy: 0 });
+  } else {
+    enemies.push({ x: ex, y: ey, r: 20, color: '#ff6b6b', hp: 3, maxHp: 3, strong: false, vx: 0, vy: 0 });
+  }
+}
+
+function spawnCake() {
+  // 1% 확률로 소환 시도, 맵에 이미 케이크가 1개 이상 있으면 소환 안 함
+  if (cakes.length >= 1) return;
+  if (Math.random() < 0.01) {
+    const x = 40 + Math.random() * (canvas.width - 80);
+    const y = 40 + Math.random() * (canvas.height - 80);
+    cakes.push({ x, y, r: 18 });
+  }
+}
+
+function drawPlayer() {
+  ctx.save();
+  ctx.translate(player.x, player.y);
+  ctx.rotate(player.angle);
+  ctx.fillStyle = player.color;
+  ctx.beginPath();
+  ctx.arc(0, 0, player.r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawBullets() {
+  for (const b of bullets) {
+    ctx.beginPath();
+    if (b.big) {
+      ctx.fillStyle = '#ff3300';
+      ctx.arc(b.x, b.y, 40, 0, Math.PI * 2);
+    } else {
+      ctx.fillStyle = '#ffe066';
+      ctx.arc(b.x, b.y, 8, 0, Math.PI * 2);
+    }
+    ctx.fill();
+  }
+}
+
+function drawEnemies() {
+  for (const e of enemies) {
+    // 각 적에 고유 id 부여(없으면)
+    if (e._id === undefined) e._id = Math.random().toString(36).slice(2);
+    ctx.fillStyle = e.color;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+    ctx.fill();
+    // HP bar
+    ctx.fillStyle = '#222';
+    let barW, barColor;
+    if (e.strong === 'super') {
+      barW = 120; barColor = '#ffd700';
+    } else if (e.strong === 'slowAttacker') {
+      barW = 60; barColor = '#e74c3c';
+    } else if (e.strong === 'fast') {
+      barW = 32; barColor = '#2ecc40';
+    } else if (e.strong) {
+      barW = 80; barColor = '#a259e6';
+    } else {
+      barW = 40; barColor = '#ff6b6b';
+    }
+    const barX = e.x - barW/2;
+    ctx.fillRect(barX, e.y - e.r - 16, barW, 6);
+    ctx.fillStyle = barColor;
+    ctx.fillRect(barX, e.y - e.r - 16, barW * (e.hp/e.maxHp), 6);
+  }
+}
+
+function drawCakes() {
+  for (const c of cakes) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff6b8';
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#e07a5f';
+    ctx.stroke();
+    ctx.font = 'bold 16px sans-serif';
+    ctx.fillStyle = '#e07a5f';
+    ctx.textAlign = 'center';
+    ctx.fillText('🍰', c.x, c.y + 6);
+    ctx.restore();
+  }
+}
+
+function updatePlayer() {
+  // 모바일 이동 입력
+  if (isMobile && touchMove.active) {
+    const len = Math.hypot(touchMove.dx, touchMove.dy);
+    if (len > 10) {
+      player.vx = (touchMove.dx / len) * player.speed;
+      player.vy = (touchMove.dy / len) * player.speed;
+    } else {
+      player.vx = 0; player.vy = 0;
+    }
+  }
+  player.vx = (keys['ArrowRight'] ? 1 : 0) - (keys['ArrowLeft'] ? 1 : 0);
+  player.vy = (keys['ArrowDown'] ? 1 : 0) - (keys['ArrowUp'] ? 1 : 0);
+  const len = Math.hypot(player.vx, player.vy);
+  if (len > 0) {
+    player.vx = (player.vx / len) * player.speed;
+    player.vy = (player.vy / len) * player.speed;
+  }
+  player.x += player.vx;
+  player.y += player.vy;
+  // 화면 경계
+  player.x = Math.max(player.r, Math.min(canvas.width - player.r, player.x));
+  player.y = Math.max(player.r, Math.min(canvas.height - player.r, player.y));
+}
+
+function updateBullets() {
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    const b = bullets[i];
+    b.x += b.vx;
+    b.y += b.vy;
+    // 화면 밖 제거 (거대 총알은 반지름 24)
+  const radius = b.big ? 40 : 8;
+    if (b.x < -radius || b.x > canvas.width + radius || b.y < -radius || b.y > canvas.height + radius) {
+      bullets.splice(i, 1);
+    }
+  }
+}
+
+function updateEnemies() {
+  for (const e of enemies) {
+    // 플레이어 추적
+    const dx = player.x - e.x;
+    const dy = player.y - e.y;
+    const len = Math.hypot(dx, dy);
+    let speed = 1.5;
+    if (e.strong === 'fast') speed = 3.5;
+    if (e.strong === 'slowAttacker') speed = 0.7;
+    if (len > 1) {
+      e.vx = (dx / len) * speed;
+      e.vy = (dy / len) * speed;
+      e.x += e.vx;
+      e.y += e.vy;
+    }
+  }
+}
+
+function checkCollisions() {
+  // 총알-적
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    const b = bullets[i];
+    // 거대 총알은 관통한 적 id를 저장
+    if (b.big && !b.hitIds) b.hitIds = [];
+    for (let j = enemies.length - 1; j >= 0; j--) {
+      const e = enemies[j];
+      const radius = b.big ? 40 : 8;
+      const dist = Math.hypot(b.x - e.x, b.y - e.y);
+      if (dist < e.r + radius) {
+        if (!b.big) {
+          e.hp -= 1;
+          charge++;
+          if (charge >= maxCharge) {
+            charge = 0;
+            canBigShot++;
+          }
+          bullets.splice(i, 1);
+          if (e.hp <= 0) {
+            // 점수 가산
+            if (e.strong === 'super') score += 10;
+            else if (e.strong === 'slowAttacker') score += 7;
+            else if (e.strong === 'fast') score += 3;
+            else if (e.strong) score += 5;
+            else score += 1;
+            enemies.splice(j, 1);
+          }
+          break;
+        } else {
+          // 거대 총알: 이미 맞은 적은 무시
+          if (b.hitIds.includes(e._id)) continue;
+          b.hitIds.push(e._id);
+          e.hp -= 3;
+          if (e.hp <= 0) {
+            // 점수 가산 (거대 총알로 처치 시도 포함)
+            if (e.strong === 'super') score += 10;
+            else if (e.strong === 'slowAttacker') score += 7;
+            else if (e.strong === 'fast') score += 3;
+            else if (e.strong) score += 5;
+            else score += 1;
+            enemies.splice(j, 1);
+          }
+          // 거대 총알은 관통
+        }
+      }
+    }
+  }
+  // 적-플레이어
+  for (const e of enemies) {
+    const dist = Math.hypot(player.x - e.x, player.y - e.y);
+    if (dist < player.r + e.r) {
+      // 느린 공격형 적은 2의 피해, 나머지는 1
+      if (e.strong === 'slowAttacker') player.hp -= 2;
+      else player.hp--;
+      // 피격 시 플레이어를 살짝 밀어냄
+      const dx = player.x - e.x;
+      const dy = player.y - e.y;
+      const len = Math.hypot(dx, dy) || 1;
+      player.x += (dx/len) * 20;
+      player.y += (dy/len) * 20;
+      if (player.hp <= 0) {
+        player.hp = 0;
+        gameOver = true;
+        // 최고 점수 갱신
+        if (score > highScore) {
+          highScore = score;
+          localStorage.setItem('game5_highScore', highScore);
+        }
+      }
+      break;
+    }
+  }
+  // 케이크-플레이어
+  for (let i = cakes.length - 1; i >= 0; i--) {
+    const c = cakes[i];
+    const dist = Math.hypot(player.x - c.x, player.y - c.y);
+    if (dist < player.r + c.r) {
+      player.hp = Math.min(player.maxHp, player.hp + 2);
+      cakes.splice(i, 1);
+    }
+  }
+}
+
+function draw() {
+  // 모바일 가상 패드 UI
+  if (isMobile) {
+    // 이동 패드(좌하단)
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath();
+    ctx.arc(90, canvas.height-90, 60, 0, Math.PI*2);
+    ctx.fillStyle = '#888';
+    ctx.fill();
+    if (touchMove.active) {
+      ctx.beginPath();
+      ctx.arc(90+touchMove.dx, canvas.height-90+touchMove.dy, 30, 0, Math.PI*2);
+      ctx.fillStyle = '#4ecdc4';
+      ctx.fill();
+    }
+    // 슈팅 패드(우하단)
+    ctx.beginPath();
+    ctx.arc(canvas.width-90, canvas.height-90, 60, 0, Math.PI*2);
+    ctx.fillStyle = '#888';
+    ctx.fill();
+    if (touchShoot.active) {
+      ctx.beginPath();
+      ctx.arc(canvas.width-90+touchShoot.dx, canvas.height-90+touchShoot.dy, 30, 0, Math.PI*2);
+      ctx.fillStyle = '#ffe066';
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+// 모바일 터치 이벤트: 이동/슈팅 패드
+canvas.addEventListener('touchstart', function(e) {
+  for (const t of e.changedTouches) {
+    const x = t.clientX - canvas.getBoundingClientRect().left;
+    const y = t.clientY - canvas.getBoundingClientRect().top;
+    // 이동 패드(좌하단)
+    if (x < 180 && y > canvas.height-180) {
+      touchMove.active = true; touchMove.id = t.identifier;
+      touchMove.x = x; touchMove.y = y; touchMove.dx = 0; touchMove.dy = 0;
+    }
+    // 슈팅 패드(우하단)
+    if (x > canvas.width-180 && y > canvas.height-180) {
+      touchShoot.active = true; touchShoot.id = t.identifier;
+      touchShoot.x = x; touchShoot.y = y; touchShoot.dx = 0; touchShoot.dy = 0;
+    }
+  }
+});
+canvas.addEventListener('touchmove', function(e) {
+  for (const t of e.changedTouches) {
+    const x = t.clientX - canvas.getBoundingClientRect().left;
+    const y = t.clientY - canvas.getBoundingClientRect().top;
+    // 이동 패드
+    if (touchMove.active && t.identifier === touchMove.id) {
+      touchMove.dx = Math.max(-60, Math.min(60, x - touchMove.x));
+      touchMove.dy = Math.max(-60, Math.min(60, y - touchMove.y));
+    }
+    // 슈팅 패드
+    if (touchShoot.active && t.identifier === touchShoot.id) {
+      touchShoot.dx = Math.max(-60, Math.min(60, x - touchShoot.x));
+      touchShoot.dy = Math.max(-60, Math.min(60, y - touchShoot.y));
+    }
+  }
+});
+canvas.addEventListener('touchend', function(e) {
+  for (const t of e.changedTouches) {
+    // 이동 패드 해제
+    if (touchMove.active && t.identifier === touchMove.id) {
+      touchMove.active = false;
+      touchMove.dx = 0; touchMove.dy = 0;
+    }
+    // 슈팅 패드 해제 및 총알 발사
+    if (touchShoot.active && t.identifier === touchShoot.id) {
+      // 슈팅 방향
+      const dx = touchShoot.dx, dy = touchShoot.dy;
+      const len = Math.hypot(dx, dy);
+      if (len > 20) {
+        // 차지샷 우선(2손가락 터치시)
+        let big = false;
+        if (canBigShot > 0 && e.touches.length > 1) { big = true; canBigShot--; }
+        const speed = big ? 5 : 10;
+        bullets.push({
+          x: player.x + (dx/len) * player.r,
+          y: player.y + (dy/len) * player.r,
+          vx: (dx/len) * speed,
+          vy: (dy/len) * speed,
+          ...(big ? {big:true} : {})
+        });
+      }
+      touchShoot.active = false;
+      touchShoot.dx = 0; touchShoot.dy = 0;
+    }
+  }
+});
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // 바깥 테두리
+  ctx.save();
+  ctx.lineWidth = 8;
+  ctx.strokeStyle = '#333';
+  ctx.strokeRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+  drawPlayer();
+  drawBullets();
+  drawEnemies();
+  drawCakes();
+  ctx.save();
+  ctx.font = 'bold 24px sans-serif';
+  ctx.fillStyle = '#170303ff';
+  ctx.fillText(`차지: ${charge} / ${maxCharge}  (거대공격: ${canBigShot})`, 24, 40);
+  ctx.restore();
+  ctx.save();
+  ctx.font = 'bold 28px sans-serif';
+  ctx.fillStyle = '#ffe066';
+  ctx.fillText(`점수: ${score}`, canvas.width - 180, 44);
+  ctx.font = 'bold 18px sans-serif';
+  ctx.fillStyle = '#3af';
+  ctx.fillText(`최고: ${highScore}`, canvas.width - 180, 70);
+  ctx.restore();
+
+  // 플레이어 HP바
+  ctx.save();
+  ctx.fillStyle = '#222';
+  ctx.fillRect(24, 60, 200, 20);
+  ctx.fillStyle = '#4ecdc4';
+  ctx.fillRect(24, 60, 200 * (player.hp/player.maxHp), 20);
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(24, 60, 200, 20);
+  ctx.font = 'bold 18px sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.fillText(`HP: ${player.hp} / ${player.maxHp}`, 32, 76);
+  ctx.restore();
+
+  // 게임 오버 표시
+  if (gameOver) {
+    ctx.save();
+    ctx.font = 'bold 64px sans-serif';
+    ctx.fillStyle = '#f00';
+    ctx.textAlign = 'center';
+    ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2 - 40);
+    // 다시하기 버튼
+    restartBtn.w = 220;
+    restartBtn.h = 60;
+    restartBtn.x = canvas.width/2 - restartBtn.w/2;
+    restartBtn.y = canvas.height/2 + 10;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(restartBtn.x, restartBtn.y, restartBtn.w, restartBtn.h);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(restartBtn.x, restartBtn.y, restartBtn.w, restartBtn.h);
+    ctx.font = 'bold 32px sans-serif';
+    ctx.fillStyle = '#222';
+    ctx.fillText('다시하기', canvas.width/2, canvas.height/2 + 52);
+    ctx.restore();
+    restartBtn.visible = true;
+  } else {
+    restartBtn.visible = false;
+  }
+// 다시하기 버튼 클릭 처리
+canvas.addEventListener('mousedown', function(e) {
+  if (!gameOver || !restartBtn.visible) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  if (
+    mx >= restartBtn.x && mx <= restartBtn.x + restartBtn.w &&
+    my >= restartBtn.y && my <= restartBtn.y + restartBtn.h
+  ) {
+    // 게임 상태 리셋
+  player.x = 400; player.y = 240; player.hp = player.maxHp;
+  bullets.length = 0;
+  enemies.length = 0;
+  cakes.length = 0;
+  charge = 0; canBigShot = 0;
+  score = 0;
+  gameOver = false;
+  }
+});
+}
+
+function update() {
+  if (gameOver) return;
+  updatePlayer();
+  updateBullets();
+  updateEnemies();
+  spawnCake();
+  checkCollisions();
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// Controls
+window.addEventListener('keydown', e => { keys[e.key] = true; });
+window.addEventListener('keyup', e => { keys[e.key] = false; });
+
+canvas.addEventListener('mousemove', function(e) {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  player.angle = Math.atan2(my - player.y, mx - player.x);
+});
+
+canvas.addEventListener('mousedown', function(e) {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const angle = Math.atan2(my - player.y, mx - player.x);
+  if (e.button === 2) {
+    // 우클릭: 거대 총알(차지 필요)
+    if (canBigShot > 0) {
+      const speed = 5;
+      bullets.push({
+        x: player.x + Math.cos(angle) * player.r,
+        y: player.y + Math.sin(angle) * player.r,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        big: true
+      });
+      canBigShot--;
+    }
+  } else if (e.button === 0) {
+    // 좌클릭: 일반 총알
+    const speed = 10;
+    bullets.push({
+      x: player.x + Math.cos(angle) * player.r,
+      y: player.y + Math.sin(angle) * player.r,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed
+    });
+  }
+});
+
+// 우클릭 메뉴 방지
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+// 적 자동 생성
+setInterval(() => {
+  if (enemies.length < 5) spawnEnemy();
+}, 1500);
+
+loop();
