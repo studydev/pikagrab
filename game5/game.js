@@ -20,6 +20,9 @@ let gameOver = false;
 let restartBtn = { x: 0, y: 0, w: 220, h: 60, visible: false };
 let score = 0;
 let highScore = Number(localStorage.getItem('game5_highScore') || 0);
+// 공격 버튼 상태
+let normalBtn = { x: 0, y: 0, w: 120, h: 52, pressed: false, touchId: null };
+let bigBtn = { x: 0, y: 0, w: 120, h: 52, pressed: false, touchId: null };
 
 function spawnEnemy() {
   const angle = Math.random() * Math.PI * 2;
@@ -122,6 +125,32 @@ function drawCakes() {
     ctx.fillText('🍰', c.x, c.y + 6);
     ctx.restore();
   }
+}
+
+function drawAttackButtons() {
+  // 버튼 위치를 매 프레임 계산(우하단 기준)
+  normalBtn.x = canvas.width - 160;
+  normalBtn.y = canvas.height - 160;
+  bigBtn.x = canvas.width - 160;
+  bigBtn.y = canvas.height - 90;
+
+  // 일반 버튼
+  ctx.save();
+  ctx.fillStyle = normalBtn.pressed ? '#ddd' : '#fff';
+  ctx.fillRect(normalBtn.x, normalBtn.y, normalBtn.w, normalBtn.h);
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.strokeRect(normalBtn.x, normalBtn.y, normalBtn.w, normalBtn.h);
+  ctx.font = 'bold 18px sans-serif'; ctx.fillStyle = '#222'; ctx.textAlign = 'center';
+  ctx.fillText('일반공격', normalBtn.x + normalBtn.w/2, normalBtn.y + 34);
+  // 거대 버튼
+  ctx.fillStyle = bigBtn.pressed ? '#ffb3b3' : '#ffdddd';
+  ctx.fillRect(bigBtn.x, bigBtn.y, bigBtn.w, bigBtn.h);
+  ctx.strokeStyle = '#b33'; ctx.lineWidth = 2; ctx.strokeRect(bigBtn.x, bigBtn.y, bigBtn.w, bigBtn.h);
+  ctx.fillStyle = '#550';
+  ctx.fillText('거대공격', bigBtn.x + bigBtn.w/2, bigBtn.y + 34);
+  // 거대공격 보유 수
+  ctx.font = 'bold 14px sans-serif'; ctx.fillStyle = '#00f';
+  ctx.fillText(`x${canBigShot}`, bigBtn.x + bigBtn.w - 18, bigBtn.y + 16);
+  ctx.restore();
 }
 
 // 좌하단에 항상 보이는 보조 패드(눈에 띄게 표시)
@@ -406,6 +435,8 @@ canvas.addEventListener('touchend', function(e) {
   drawCakes();
   // 항상 보이는 조이스틱 안내
   drawAlwaysVisiblePad();
+  // 공격 버튼 UI
+  drawAttackButtons();
   ctx.save();
   ctx.font = 'bold 24px sans-serif';
   ctx.fillStyle = '#170303ff';
@@ -538,6 +569,24 @@ canvas.addEventListener('mousedown', function(e) {
   const rect = canvas.getBoundingClientRect();
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
+  // 공격 버튼 클릭 처리
+  if (mx >= normalBtn.x && mx <= normalBtn.x + normalBtn.w && my >= normalBtn.y && my <= normalBtn.y + normalBtn.h) {
+    // 일반 공격
+    const angle = player.angle;
+    bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
+    normalBtn.pressed = true;
+    return;
+  }
+  if (mx >= bigBtn.x && mx <= bigBtn.x + bigBtn.w && my >= bigBtn.y && my <= bigBtn.y + bigBtn.h) {
+    // 거대 공격
+    if (canBigShot > 0) {
+      const angle = player.angle;
+      bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
+      canBigShot--;
+      bigBtn.pressed = true;
+    }
+    return;
+  }
   // 좌하단을 클릭하면 데스크탑에서도 조이스틱 시작
   if (!isMobile && mx < 180 && my > canvas.height - 180) {
     touchMove.active = true;
@@ -568,6 +617,39 @@ canvas.addEventListener('mousedown', function(e) {
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed
     });
+  }
+});
+
+canvas.addEventListener('mouseup', function(e) {
+  normalBtn.pressed = false;
+  bigBtn.pressed = false;
+});
+
+// 터치로 버튼 누르기 (touchstart/touchend)
+canvas.addEventListener('touchstart', function(e) {
+  for (const t of e.changedTouches) {
+    const x = t.clientX - canvas.getBoundingClientRect().left;
+    const y = t.clientY - canvas.getBoundingClientRect().top;
+    if (x >= normalBtn.x && x <= normalBtn.x + normalBtn.w && y >= normalBtn.y && y <= normalBtn.y + normalBtn.h) {
+      normalBtn.pressed = true; normalBtn.touchId = t.identifier;
+      const angle = touchShoot.active ? Math.atan2(touchShoot.dy, touchShoot.dx) : player.angle;
+      bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
+    }
+    if (x >= bigBtn.x && x <= bigBtn.x + bigBtn.w && y >= bigBtn.y && y <= bigBtn.y + bigBtn.h) {
+      if (canBigShot > 0) {
+        bigBtn.pressed = true; bigBtn.touchId = t.identifier;
+        const angle = touchShoot.active ? Math.atan2(touchShoot.dy, touchShoot.dx) : player.angle;
+        bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
+        canBigShot--;
+      }
+    }
+  }
+});
+
+canvas.addEventListener('touchend', function(e) {
+  for (const t of e.changedTouches) {
+    if (normalBtn.touchId === t.identifier) { normalBtn.pressed = false; normalBtn.touchId = null; }
+    if (bigBtn.touchId === t.identifier) { bigBtn.pressed = false; bigBtn.touchId = null; }
   }
 });
 
