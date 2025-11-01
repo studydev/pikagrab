@@ -652,6 +652,16 @@ function drawDebugOverlay() {
     ctx.fillText(`touch ${id}: ${Math.round(t.x)},${Math.round(t.y)}`, 10, ty);
     ty += 14;
   }
+  // bullets info
+  ctx.fillStyle = 'rgba(255,200,0,0.9)';
+  ctx.fillText(`bullets: ${bullets.length}`, 10, ty + 4);
+  let bi = 0;
+  for (let i = Math.max(0, bullets.length - 4); i < bullets.length; i++) {
+    const b = bullets[i];
+    if (!b) continue;
+    ctx.fillText(`b${i}: ${Math.round(b.x)},${Math.round(b.y)} vx=${b.vx.toFixed(1)},vy=${b.vy.toFixed(1)}${b.big?',BIG':''}`, 10, ty + 20 + bi * 14);
+    bi++;
+  }
   ctx.restore();
 }
 
