@@ -23,6 +23,8 @@ let canBigShot = 0;
 // 디버그 모드: 화면에 각도/벡터/이벤트를 그림
 let DEBUG = true;
 let debugEvents = [];
+// 현재 활성화된 터치들(디버깅용)
+let currentTouches = {};
 let gameOver = false;
 let restartBtn = { x: 0, y: 0, w: 220, h: 60, visible: false };
 let score = 0;
@@ -396,6 +398,12 @@ function draw() {
 canvas.addEventListener('touchstart', function(e) {
   // 터치 기본 동작(확대 등)을 막음
   e.preventDefault();
+  // 업데이트 currentTouches for debugging
+  for (const t of e.changedTouches) {
+    const tx = t.clientX - canvas.getBoundingClientRect().left;
+    const ty = t.clientY - canvas.getBoundingClientRect().top;
+    currentTouches[t.identifier] = { x: tx, y: ty };
+  }
   for (const t of e.changedTouches) {
     const x = t.clientX - canvas.getBoundingClientRect().left;
     const y = t.clientY - canvas.getBoundingClientRect().top;
@@ -417,6 +425,13 @@ canvas.addEventListener('touchstart', function(e) {
 canvas.addEventListener('touchmove', function(e) {
   e.preventDefault();
   for (const t of e.changedTouches) {
+    const tx = t.clientX - canvas.getBoundingClientRect().left;
+    const ty = t.clientY - canvas.getBoundingClientRect().top;
+    if (currentTouches[t.identifier]) {
+      currentTouches[t.identifier].x = tx; currentTouches[t.identifier].y = ty;
+    }
+  }
+  for (const t of e.changedTouches) {
     const x = t.clientX - canvas.getBoundingClientRect().left;
     const y = t.clientY - canvas.getBoundingClientRect().top;
     // 이동 패드
@@ -434,6 +449,8 @@ canvas.addEventListener('touchmove', function(e) {
 canvas.addEventListener('touchend', function(e) {
   e.preventDefault();
   for (const t of e.changedTouches) {
+    // remove from debug touches
+    delete currentTouches[t.identifier];
     // 이동 패드 해제
     if (touchMove.active && t.identifier === touchMove.id) {
       touchMove.active = false;
@@ -572,6 +589,14 @@ function drawDebugOverlay() {
   for (let i = 0; i < debugEvents.length; i++) {
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
     ctx.fillText(debugEvents[i], 10, 20 + i * 14);
+  }
+  // current touches (debug)
+  let ty = 20 + debugEvents.length * 14 + 8;
+  ctx.fillStyle = 'rgba(0,255,0,0.9)';
+  for (const id in currentTouches) {
+    const t = currentTouches[id];
+    ctx.fillText(`touch ${id}: ${Math.round(t.x)},${Math.round(t.y)}`, 10, ty);
+    ty += 14;
   }
   ctx.restore();
 }
