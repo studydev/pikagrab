@@ -727,33 +727,36 @@ canvas.addEventListener('mouseup', function(e) {
   bigBtn.pressed = false;
 });
 
-// 터치로 버튼 누르기 (touchstart/touchend)
+// 터치로 버튼 누르기 (touchstart/touchend) — non-passive로 등록하여 preventDefault 사용
 canvas.addEventListener('touchstart', function(e) {
+  e.preventDefault();
+  pushDebugEvent(`touchstart handler entries: changed=${e.changedTouches.length} total=${e.touches.length}`);
   for (const t of e.changedTouches) {
     const x = t.clientX - canvas.getBoundingClientRect().left;
     const y = t.clientY - canvas.getBoundingClientRect().top;
     // 마지막 포인터 위치는 우선 업데이트하되, 버튼 터치 시에는 패드 할당과 충돌하지 않도록 처리
     lastPointer.x = x; lastPointer.y = y;
+    pushDebugEvent(`touch id=${t.identifier} at ${Math.round(x)},${Math.round(y)}`);
     if (x >= normalBtn.x && x <= normalBtn.x + normalBtn.w && y >= normalBtn.y && y <= normalBtn.y + normalBtn.h) {
       normalBtn.pressed = true; normalBtn.touchId = t.identifier;
-  // 버튼 터치 시에는 터치 좌표를 강제로 사용하여 각도를 계산
-  const angle = getAimAngle(x, y, true);
-  player.angle = angle;
-  bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
-  pushDebugEvent(`NORMAL touch fire ang=${angle.toFixed(2)}`);
+      // 버튼 터치 시에는 터치 좌표를 강제로 사용하여 각도를 계산
+      const angle = getAimAngle(x, y, true);
+      player.angle = angle;
+      bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
+      pushDebugEvent(`NORMAL touch fire ang=${angle.toFixed(2)} id=${t.identifier}`);
     }
     if (x >= bigBtn.x && x <= bigBtn.x + bigBtn.w && y >= bigBtn.y && y <= bigBtn.y + bigBtn.h) {
       if (canBigShot > 0) {
         bigBtn.pressed = true; bigBtn.touchId = t.identifier;
-  const angle = getAimAngle(x, y, true);
-  player.angle = angle;
-  bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
-  pushDebugEvent(`BIG touch fire ang=${angle.toFixed(2)} left=${canBigShot-1}`);
+        const angle = getAimAngle(x, y, true);
+        player.angle = angle;
+        bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
+        pushDebugEvent(`BIG touch fire ang=${angle.toFixed(2)} left=${canBigShot-1} id=${t.identifier}`);
         canBigShot--;
       }
     }
   }
-});
+}, { passive: false });
 
 canvas.addEventListener('touchend', function(e) {
   for (const t of e.changedTouches) {
