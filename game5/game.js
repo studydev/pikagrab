@@ -7,6 +7,8 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 canvas.width = 800;
 canvas.height = 480;
+// 모바일 브라우저의 더블탭/핀치 줌을 방지
+try { canvas.style.touchAction = 'none'; } catch (e) {}
 
 const player = { x: 400, y: 240, r: 22, color: '#4ecdc4', speed: 4, vx: 0, vy: 0, angle: 0, hp: 10, maxHp: 10 };
 let keys = {};
@@ -392,6 +394,8 @@ function draw() {
   }
 // 모바일 터치 이벤트: 이동/슈팅 패드
 canvas.addEventListener('touchstart', function(e) {
+  // 터치 기본 동작(확대 등)을 막음
+  e.preventDefault();
   // 만약 현재 활성화된 터치들 중 버튼을 누르고 있는 터치가 있다면 패드 할당을 완전 차단
   let anyButtonTouch = false;
   for (const at of e.touches) {
@@ -418,8 +422,9 @@ canvas.addEventListener('touchstart', function(e) {
       touchShoot.x = x; touchShoot.y = y; touchShoot.dx = 0; touchShoot.dy = 0;
     }
   }
-});
+}, { passive: false });
 canvas.addEventListener('touchmove', function(e) {
+  e.preventDefault();
   for (const t of e.changedTouches) {
     const x = t.clientX - canvas.getBoundingClientRect().left;
     const y = t.clientY - canvas.getBoundingClientRect().top;
@@ -434,8 +439,9 @@ canvas.addEventListener('touchmove', function(e) {
       touchShoot.dy = Math.max(-60, Math.min(60, y - touchShoot.y));
     }
   }
-});
+}, { passive: false });
 canvas.addEventListener('touchend', function(e) {
+  e.preventDefault();
   for (const t of e.changedTouches) {
     // 이동 패드 해제
     if (touchMove.active && t.identifier === touchMove.id) {
@@ -464,7 +470,7 @@ canvas.addEventListener('touchend', function(e) {
       touchShoot.dx = 0; touchShoot.dy = 0;
     }
   }
-});
+}, { passive: false });
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   // 바깥 테두리
   ctx.save();
