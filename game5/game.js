@@ -396,21 +396,12 @@ function draw() {
 canvas.addEventListener('touchstart', function(e) {
   // 터치 기본 동작(확대 등)을 막음
   e.preventDefault();
-  // 만약 현재 활성화된 터치들 중 버튼을 누르고 있는 터치가 있다면 패드 할당을 완전 차단
-  let anyButtonTouch = false;
-  for (const at of e.touches) {
-    const ax = at.clientX - canvas.getBoundingClientRect().left;
-    const ay = at.clientY - canvas.getBoundingClientRect().top;
-    if (ax >= normalBtn.x && ax <= normalBtn.x + normalBtn.w && ay >= normalBtn.y && ay <= normalBtn.y + normalBtn.h) { anyButtonTouch = true; break; }
-    if (ax >= bigBtn.x && ax <= bigBtn.x + bigBtn.w && ay >= bigBtn.y && ay <= bigBtn.y + bigBtn.h) { anyButtonTouch = true; break; }
-  }
   for (const t of e.changedTouches) {
     const x = t.clientX - canvas.getBoundingClientRect().left;
     const y = t.clientY - canvas.getBoundingClientRect().top;
     // 만약 버튼 영역이면 패드 할당을 건너뜀(버튼 터치 우선)
     if (x >= normalBtn.x && x <= normalBtn.x + normalBtn.w && y >= normalBtn.y && y <= normalBtn.y + normalBtn.h) continue;
     if (x >= bigBtn.x && x <= bigBtn.x + bigBtn.w && y >= bigBtn.y && y <= bigBtn.y + bigBtn.h) continue;
-    if (anyButtonTouch) continue; // 다른 손가락으로 버튼을 누르고 있으면 패드 할당 금지
     // 이동 패드(좌하단)
     if (x < 180 && y > canvas.height-180) {
       touchMove.active = true; touchMove.id = t.identifier;
