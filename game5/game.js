@@ -124,9 +124,31 @@ function drawCakes() {
   }
 }
 
+// 좌하단에 항상 보이는 보조 패드(눈에 띄게 표시)
+function drawAlwaysVisiblePad() {
+  const x = 90, y = canvas.height - 90;
+  ctx.save();
+  // 큰 반투명 배경
+  ctx.beginPath();
+  ctx.arc(x, y, 70, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fill();
+  // 밝은 테두리
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#4ecdc4';
+  ctx.stroke();
+  // MOVE 텍스트
+  ctx.font = 'bold 14px sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.fillText('MOVE', x, y + 6);
+  ctx.restore();
+}
+
 function updatePlayer() {
   // 모바일 이동 입력
   if (isMobile && touchMove.active) {
+    // 터치 조이스틱이 활성화된 경우 터치 입력 우선
     const len = Math.hypot(touchMove.dx, touchMove.dy);
     if (len > 10) {
       player.vx = (touchMove.dx / len) * player.speed;
@@ -134,9 +156,11 @@ function updatePlayer() {
     } else {
       player.vx = 0; player.vy = 0;
     }
+  } else {
+    // 데스크탑/키보드 이동(항상 유지)
+    player.vx = (keys['ArrowRight'] ? 1 : 0) - (keys['ArrowLeft'] ? 1 : 0);
+    player.vy = (keys['ArrowDown'] ? 1 : 0) - (keys['ArrowUp'] ? 1 : 0);
   }
-  player.vx = (keys['ArrowRight'] ? 1 : 0) - (keys['ArrowLeft'] ? 1 : 0);
-  player.vy = (keys['ArrowDown'] ? 1 : 0) - (keys['ArrowUp'] ? 1 : 0);
   const len = Math.hypot(player.vx, player.vy);
   if (len > 0) {
     player.vx = (player.vx / len) * player.speed;
@@ -265,19 +289,32 @@ function checkCollisions() {
 }
 
 function draw() {
-  // 모바일 가상 패드 UI
-  if (isMobile) {
-    // 이동 패드(좌하단)
+  // 가상 패드 UI (모바일 전용이 아니도록 항상 렌더링)
+  {
+    // 이동 조이스틱: 터치 시작 지점을 기준으로 다이내믹하게 표시
     ctx.save();
     ctx.globalAlpha = 0.5;
-    ctx.beginPath();
-    ctx.arc(90, canvas.height-90, 60, 0, Math.PI*2);
-    ctx.fillStyle = '#888';
-    ctx.fill();
     if (touchMove.active) {
+      // 베이스
       ctx.beginPath();
-      ctx.arc(90+touchMove.dx, canvas.height-90+touchMove.dy, 30, 0, Math.PI*2);
+      ctx.arc(touchMove.x, touchMove.y, 60, 0, Math.PI*2);
+      ctx.fillStyle = '#888';
+      ctx.fill();
+      // 노브
+      ctx.beginPath();
+      ctx.arc(touchMove.x + touchMove.dx, touchMove.y + touchMove.dy, 30, 0, Math.PI*2);
       ctx.fillStyle = '#4ecdc4';
+      ctx.fill();
+    } else {
+      // 비활성 시에도 좌하단에 더 눈에 띄는 베이스 표시
+      ctx.beginPath();
+      ctx.arc(90, canvas.height-90, 60, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(136,136,136,0.15)';
+      ctx.fill();
+      // 중앙 노브(비활성 안내)
+      ctx.beginPath();
+      ctx.arc(90, canvas.height-90, 18, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(78,205,196,0.25)';
       ctx.fill();
     }
     // 슈팅 패드(우하단)
@@ -367,6 +404,8 @@ canvas.addEventListener('touchend', function(e) {
   drawBullets();
   drawEnemies();
   drawCakes();
+  // 항상 보이는 조이스틱 안내
+  drawAlwaysVisiblePad();
   ctx.save();
   ctx.font = 'bold 24px sans-serif';
   ctx.fillStyle = '#170303ff';
@@ -466,12 +505,46 @@ canvas.addEventListener('mousemove', function(e) {
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
   player.angle = Math.atan2(my - player.y, mx - player.x);
+  // 마우스 드래그로 조이스틱 제어(데스크탑용)
+  if (touchMove.active && touchMove.id === 'mouse') {
+    // 사용자가 마우스로 직접 누른 상태에서 드래그
+    touchMove.dx = Math.max(-60, Math.min(60, mx - touchMove.x));
+    touchMove.dy = Math.max(-60, Math.min(60, my - touchMove.y));
+  } else {
+    // 마우스가 좌하단 조이스틱 영역에 들어오면 클릭 없이도 조이스틱 활성화
+    const inPad = (!isMobile && mx < 180 && my > canvas.height - 180);
+    const baseX = 90, baseY = canvas.height - 90;
+    if (inPad) {
+      // hover 활성화 (id = 'mousehover')
+      if (!touchMove.active || touchMove.id !== 'mousehover') {
+        touchMove.active = true;
+        touchMove.id = 'mousehover';
+        touchMove.x = baseX; touchMove.y = baseY;
+      }
+      touchMove.dx = Math.max(-60, Math.min(60, mx - touchMove.x));
+      touchMove.dy = Math.max(-60, Math.min(60, my - touchMove.y));
+    } else {
+      // hover 영역을 벗어나면 hover 해제(단, 직접 누른 mouse 드래그는 유지)
+      if (touchMove.active && touchMove.id === 'mousehover') {
+        touchMove.active = false;
+        touchMove.id = null;
+        touchMove.dx = 0; touchMove.dy = 0;
+      }
+    }
+  }
 });
 
 canvas.addEventListener('mousedown', function(e) {
   const rect = canvas.getBoundingClientRect();
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
+  // 좌하단을 클릭하면 데스크탑에서도 조이스틱 시작
+  if (!isMobile && mx < 180 && my > canvas.height - 180) {
+    touchMove.active = true;
+    touchMove.id = 'mouse';
+    touchMove.x = mx; touchMove.y = my; touchMove.dx = 0; touchMove.dy = 0;
+    return;
+  }
   const angle = Math.atan2(my - player.y, mx - player.x);
   if (e.button === 2) {
     // 우클릭: 거대 총알(차지 필요)
@@ -495,6 +568,15 @@ canvas.addEventListener('mousedown', function(e) {
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed
     });
+  }
+});
+
+// 마우스 업에서 조이스틱 해제
+canvas.addEventListener('mouseup', function(e) {
+  if (touchMove.active && touchMove.id === 'mouse') {
+    touchMove.active = false;
+    touchMove.id = null;
+    touchMove.dx = 0; touchMove.dy = 0;
   }
 });
 
