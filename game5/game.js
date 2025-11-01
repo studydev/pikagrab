@@ -10,6 +10,17 @@ canvas.height = 480;
 // 모바일 브라우저의 더블탭/핀치 줌을 방지
 try { canvas.style.touchAction = 'none'; } catch (e) {}
 
+// 전역 진단: 페이지 수준에서 터치/포인터가 들어오는지 확인
+document.addEventListener('touchstart', function(e) {
+  // don't preventDefault here; just log
+  pushDebugEvent(`GLOBAL touchstart changed=${e.changedTouches.length} total=${e.touches.length}`);
+}, { passive: true, capture: true });
+document.addEventListener('pointerdown', function(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.round(e.clientX - rect.left), y = Math.round(e.clientY - rect.top);
+  pushDebugEvent(`GLOBAL pointerdown type=${e.pointerType} btn=${e.button} at=${x},${y}`);
+}, { passive: true, capture: true });
+
 const player = { x: 400, y: 240, r: 22, color: '#4ecdc4', speed: 4, vx: 0, vy: 0, angle: 0, hp: 10, maxHp: 10 };
 let keys = {};
 let bullets = [];
