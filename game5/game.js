@@ -18,6 +18,9 @@ let lastPointer = { x: 400, y: 240 };
 let charge = 0;
 let maxCharge = 9;
 let canBigShot = 0;
+// 디버그 모드: 화면에 각도/벡터/이벤트를 그림
+let DEBUG = true;
+let debugEvents = [];
 let gameOver = false;
 let restartBtn = { x: 0, y: 0, w: 220, h: 60, visible: false };
 let score = 0;
@@ -456,6 +459,8 @@ canvas.addEventListener('touchend', function(e) {
   drawAlwaysVisiblePad();
   // 공격 버튼 UI
   drawAttackButtons();
+  // 디버그 오버레이
+  if (DEBUG) drawDebugOverlay();
   ctx.save();
   ctx.font = 'bold 24px sans-serif';
   ctx.fillStyle = '#170303ff';
@@ -531,6 +536,33 @@ canvas.addEventListener('mousedown', function(e) {
 });
 }
 
+function drawDebugOverlay() {
+  ctx.save();
+  ctx.font = '12px monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  // last pointer
+  ctx.fillText(`lastPointer: ${Math.round(lastPointer.x)},${Math.round(lastPointer.y)}`, 10, canvas.height - 10);
+  // shooting pad vector
+  ctx.fillText(`touchShoot: dx=${Math.round(touchShoot.dx)}, dy=${Math.round(touchShoot.dy)} active=${touchShoot.active}`, 10, canvas.height - 26);
+  // draw arrow for aim
+  const aim = getAimAngle(lastPointer.x, lastPointer.y);
+  const ax = player.x, ay = player.y;
+  const bx = ax + Math.cos(aim) * 60, by = ay + Math.sin(aim) * 60;
+  ctx.strokeStyle = '#ff0'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+  // recent events
+  for (let i = 0; i < debugEvents.length; i++) {
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillText(debugEvents[i], 10, 20 + i * 14);
+  }
+  ctx.restore();
+}
+
+function pushDebugEvent(msg) {
+  debugEvents.unshift(msg);
+  if (debugEvents.length > 6) debugEvents.pop();
+}
+
 function update() {
   if (gameOver) return;
   updatePlayer();
@@ -595,14 +627,16 @@ canvas.addEventListener('mousedown', function(e) {
     // 일반 공격: 조준 방향 우선
     const angle = getAimAngle(lastPointer.x, lastPointer.y);
     bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
+  pushDebugEvent(`NORMAL fire ang=${angle.toFixed(2)}`);
     normalBtn.pressed = true;
     return;
   }
     if (mx >= bigBtn.x && mx <= bigBtn.x + bigBtn.w && my >= bigBtn.y && my <= bigBtn.y + bigBtn.h) {
     // 거대 공격
     if (canBigShot > 0) {
-      const angle = getAimAngle(lastPointer.x, lastPointer.y);
+  const angle = getAimAngle(lastPointer.x, lastPointer.y);
       bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
+  pushDebugEvent(`BIG fire ang=${angle.toFixed(2)} left=${canBigShot-1}`);
       canBigShot--;
       bigBtn.pressed = true;
     }
@@ -657,12 +691,14 @@ canvas.addEventListener('touchstart', function(e) {
       normalBtn.pressed = true; normalBtn.touchId = t.identifier;
   const angle = getAimAngle(x, y);
   bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
+  pushDebugEvent(`NORMAL touch fire ang=${angle.toFixed(2)}`);
     }
     if (x >= bigBtn.x && x <= bigBtn.x + bigBtn.w && y >= bigBtn.y && y <= bigBtn.y + bigBtn.h) {
       if (canBigShot > 0) {
         bigBtn.pressed = true; bigBtn.touchId = t.identifier;
   const angle = getAimAngle(x, y);
   bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
+  pushDebugEvent(`BIG touch fire ang=${angle.toFixed(2)} left=${canBigShot-1}`);
         canBigShot--;
       }
     }
