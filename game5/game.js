@@ -25,6 +25,25 @@ let DEBUG = true;
 let debugEvents = [];
 // 현재 활성화된 터치들(디버깅용)
 let currentTouches = {};
+// touch id로 이미 발사한 터치를 추적하여 중복 발사를 방지
+let lastFiredTouchIds = new Set();
+
+function fireNormalTouch(x, y, id) {
+  const angle = getAimAngle(x, y, true);
+  player.angle = angle;
+  bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
+  pushDebugEvent(`NORMAL touch fire ang=${angle.toFixed(2)} id=${id}`);
+  if (typeof id !== 'undefined' && id !== null) lastFiredTouchIds.add(id);
+}
+
+function fireBigTouch(x, y, id) {
+  const angle = getAimAngle(x, y, true);
+  player.angle = angle;
+  bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
+  pushDebugEvent(`BIG touch fire ang=${angle.toFixed(2)} left=${canBigShot-1} id=${id}`);
+  if (typeof id !== 'undefined' && id !== null) lastFiredTouchIds.add(id);
+  canBigShot = Math.max(0, canBigShot-1);
+}
 let gameOver = false;
 let restartBtn = { x: 0, y: 0, w: 220, h: 60, visible: false };
 let score = 0;
@@ -739,20 +758,17 @@ canvas.addEventListener('touchstart', function(e) {
     pushDebugEvent(`touch id=${t.identifier} at ${Math.round(x)},${Math.round(y)}`);
     if (x >= normalBtn.x && x <= normalBtn.x + normalBtn.w && y >= normalBtn.y && y <= normalBtn.y + normalBtn.h) {
       normalBtn.pressed = true; normalBtn.touchId = t.identifier;
-      // 버튼 터치 시에는 터치 좌표를 강제로 사용하여 각도를 계산
-      const angle = getAimAngle(x, y, true);
-      player.angle = angle;
-      bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
-      pushDebugEvent(`NORMAL touch fire ang=${angle.toFixed(2)} id=${t.identifier}`);
+      // 실제 발사 시도
+      if (!lastFiredTouchIds.has(t.identifier)) {
+        fireNormalTouch(x, y, t.identifier);
+      }
     }
     if (x >= bigBtn.x && x <= bigBtn.x + bigBtn.w && y >= bigBtn.y && y <= bigBtn.y + bigBtn.h) {
       if (canBigShot > 0) {
         bigBtn.pressed = true; bigBtn.touchId = t.identifier;
-        const angle = getAimAngle(x, y, true);
-        player.angle = angle;
-        bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
-        pushDebugEvent(`BIG touch fire ang=${angle.toFixed(2)} left=${canBigShot-1} id=${t.identifier}`);
-        canBigShot--;
+        if (!lastFiredTouchIds.has(t.identifier)) {
+          fireBigTouch(x, y, t.identifier);
+        }
       }
     }
   }
@@ -760,8 +776,24 @@ canvas.addEventListener('touchstart', function(e) {
 
 canvas.addEventListener('touchend', function(e) {
   for (const t of e.changedTouches) {
-    if (normalBtn.touchId === t.identifier) { normalBtn.pressed = false; normalBtn.touchId = null; }
-    if (bigBtn.touchId === t.identifier) { bigBtn.pressed = false; bigBtn.touchId = null; }
+    if (normalBtn.touchId === t.identifier) { 
+      // touchstart에서 발사가 제대로 되지 않았으면 touchend에서 안전 발사
+      if (!lastFiredTouchIds.has(t.identifier)) {
+        // find position: use currentTouches or lastPointer
+        const pos = currentTouches[t.identifier] || { x: lastPointer.x, y: lastPointer.y };
+        fireNormalTouch(pos.x, pos.y, t.identifier);
+      }
+      normalBtn.pressed = false; normalBtn.touchId = null; 
+      lastFiredTouchIds.delete(t.identifier);
+    }
+    if (bigBtn.touchId === t.identifier) { 
+      if (!lastFiredTouchIds.has(t.identifier) && canBigShot > 0) {
+        const pos = currentTouches[t.identifier] || { x: lastPointer.x, y: lastPointer.y };
+        fireBigTouch(pos.x, pos.y, t.identifier);
+      }
+      if (bigBtn.touchId === t.identifier) { bigBtn.pressed = false; bigBtn.touchId = null; }
+      lastFiredTouchIds.delete(t.identifier);
+    }
   }
 });
 
