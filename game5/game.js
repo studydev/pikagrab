@@ -27,6 +27,13 @@ let debugEvents = [];
 let currentTouches = {};
 // touch id로 이미 발사한 터치를 추적하여 중복 발사를 방지
 let lastFiredTouchIds = new Set();
+// 터치 플래시(버튼 누름에 대한 시각적 피드백)
+let touchFlashes = [];
+
+function addTouchFlash(x, y, id) {
+  touchFlashes.push({ x, y, a: 1.0, id, t: Date.now() });
+  try { if (navigator.vibrate) navigator.vibrate(20); } catch (e) {}
+}
 
 function fireNormalTouch(x, y, id) {
   const angle = getAimAngle(x, y, true);
@@ -34,6 +41,7 @@ function fireNormalTouch(x, y, id) {
   bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
   pushDebugEvent(`NORMAL touch fire ang=${angle.toFixed(2)} id=${id}`);
   if (typeof id !== 'undefined' && id !== null) lastFiredTouchIds.add(id);
+  addTouchFlash(x, y, id);
 }
 
 function fireBigTouch(x, y, id) {
@@ -43,6 +51,7 @@ function fireBigTouch(x, y, id) {
   pushDebugEvent(`BIG touch fire ang=${angle.toFixed(2)} left=${canBigShot-1} id=${id}`);
   if (typeof id !== 'undefined' && id !== null) lastFiredTouchIds.add(id);
   canBigShot = Math.max(0, canBigShot-1);
+  addTouchFlash(x, y, id);
 }
 let gameOver = false;
 let restartBtn = { x: 0, y: 0, w: 220, h: 60, visible: false };
@@ -513,6 +522,21 @@ canvas.addEventListener('touchend', function(e) {
   drawAlwaysVisiblePad();
   // 공격 버튼 UI
   drawAttackButtons();
+  // 터치 플래시 렌더링(짧은 시간 동안 표시)
+  if (touchFlashes.length) {
+    const now = Date.now();
+    for (let i = touchFlashes.length - 1; i >= 0; i--) {
+      const f = touchFlashes[i];
+      const age = now - f.t;
+      const life = 300;
+      if (age > life) { touchFlashes.splice(i, 1); continue; }
+      const a = 1 - (age / life);
+      ctx.save();
+      ctx.globalAlpha = a * 0.9;
+      ctx.beginPath(); ctx.fillStyle = '#ffff88'; ctx.arc(f.x, f.y, 28 * (1 - age/life) + 6, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  }
   // 디버그 오버레이
   if (DEBUG) drawDebugOverlay();
   ctx.save();
