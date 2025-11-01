@@ -13,6 +13,8 @@ let keys = {};
 let bullets = [];
 let enemies = [];
 let cakes = [];
+// 마지막 포인터 위치(마우스/터치)를 추적
+let lastPointer = { x: 400, y: 240 };
 let charge = 0;
 let maxCharge = 9;
 let canBigShot = 0;
@@ -151,6 +153,23 @@ function drawAttackButtons() {
   ctx.font = 'bold 14px sans-serif'; ctx.fillStyle = '#00f';
   ctx.fillText(`x${canBigShot}`, bigBtn.x + bigBtn.w - 18, bigBtn.y + 16);
   ctx.restore();
+}
+
+// aim 각도 계산: 우선순위 - shooting pad 방향(충분한 입력), 마지막 포인터 위치, player.angle
+function getAimAngle(mx, my) {
+  // shooting pad 우선
+  if (touchShoot.active) {
+    const len = Math.hypot(touchShoot.dx, touchShoot.dy);
+    if (len > 6) return Math.atan2(touchShoot.dy, touchShoot.dx);
+  }
+  // 마지막 포인터(클릭/터치) 사용
+  if (typeof mx === 'number' && typeof my === 'number') {
+    const dx = mx - player.x, dy = my - player.y;
+    const l = Math.hypot(dx, dy);
+    if (l > 6) return Math.atan2(dy, dx);
+  }
+  // 폴백으로 player.angle
+  return player.angle;
 }
 
 // 좌하단에 항상 보이는 보조 패드(눈에 띄게 표시)
@@ -536,6 +555,8 @@ canvas.addEventListener('mousemove', function(e) {
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
   player.angle = Math.atan2(my - player.y, mx - player.x);
+  // 마지막 포인터 위치 업데이트
+  lastPointer.x = mx; lastPointer.y = my;
   // 마우스 드래그로 조이스틱 제어(데스크탑용)
   if (touchMove.active && touchMove.id === 'mouse') {
     // 사용자가 마우스로 직접 누른 상태에서 드래그
@@ -571,8 +592,8 @@ canvas.addEventListener('mousedown', function(e) {
   const my = e.clientY - rect.top;
   // 공격 버튼 클릭 처리
   if (mx >= normalBtn.x && mx <= normalBtn.x + normalBtn.w && my >= normalBtn.y && my <= normalBtn.y + normalBtn.h) {
-    // 일반 공격: 조준 방향 우선(슈팅 패드 또는 플레이어 각도)
-    const angle = touchShoot.active ? Math.atan2(touchShoot.dy, touchShoot.dx) : player.angle;
+    // 일반 공격: 조준 방향 우선
+    const angle = getAimAngle(lastPointer.x, lastPointer.y);
     bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
     normalBtn.pressed = true;
     return;
@@ -580,7 +601,7 @@ canvas.addEventListener('mousedown', function(e) {
     if (mx >= bigBtn.x && mx <= bigBtn.x + bigBtn.w && my >= bigBtn.y && my <= bigBtn.y + bigBtn.h) {
     // 거대 공격
     if (canBigShot > 0) {
-      const angle = touchShoot.active ? Math.atan2(touchShoot.dy, touchShoot.dx) : player.angle;
+      const angle = getAimAngle(lastPointer.x, lastPointer.y);
       bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
       canBigShot--;
       bigBtn.pressed = true;
@@ -630,16 +651,18 @@ canvas.addEventListener('touchstart', function(e) {
   for (const t of e.changedTouches) {
     const x = t.clientX - canvas.getBoundingClientRect().left;
     const y = t.clientY - canvas.getBoundingClientRect().top;
+    // 마지막 포인터 위치 업데이트
+    lastPointer.x = x; lastPointer.y = y;
     if (x >= normalBtn.x && x <= normalBtn.x + normalBtn.w && y >= normalBtn.y && y <= normalBtn.y + normalBtn.h) {
       normalBtn.pressed = true; normalBtn.touchId = t.identifier;
-      const angle = touchShoot.active ? Math.atan2(touchShoot.dy, touchShoot.dx) : Math.atan2(y - player.y, x - player.x);
-      bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
+  const angle = getAimAngle(x, y);
+  bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
     }
     if (x >= bigBtn.x && x <= bigBtn.x + bigBtn.w && y >= bigBtn.y && y <= bigBtn.y + bigBtn.h) {
       if (canBigShot > 0) {
         bigBtn.pressed = true; bigBtn.touchId = t.identifier;
-        const angle = touchShoot.active ? Math.atan2(touchShoot.dy, touchShoot.dx) : Math.atan2(y - player.y, x - player.x);
-        bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
+  const angle = getAimAngle(x, y);
+  bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
         canBigShot--;
       }
     }
