@@ -571,8 +571,8 @@ canvas.addEventListener('mousedown', function(e) {
   const my = e.clientY - rect.top;
   // 공격 버튼 클릭 처리
   if (mx >= normalBtn.x && mx <= normalBtn.x + normalBtn.w && my >= normalBtn.y && my <= normalBtn.y + normalBtn.h) {
-    // 일반 공격
-    const angle = player.angle;
+    // 일반 공격: 클릭 위치로 발사
+    const angle = Math.atan2(my - player.y, mx - player.x);
     bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
     normalBtn.pressed = true;
     return;
@@ -580,7 +580,7 @@ canvas.addEventListener('mousedown', function(e) {
   if (mx >= bigBtn.x && mx <= bigBtn.x + bigBtn.w && my >= bigBtn.y && my <= bigBtn.y + bigBtn.h) {
     // 거대 공격
     if (canBigShot > 0) {
-      const angle = player.angle;
+      const angle = Math.atan2(my - player.y, mx - player.x);
       bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
       canBigShot--;
       bigBtn.pressed = true;
@@ -632,13 +632,13 @@ canvas.addEventListener('touchstart', function(e) {
     const y = t.clientY - canvas.getBoundingClientRect().top;
     if (x >= normalBtn.x && x <= normalBtn.x + normalBtn.w && y >= normalBtn.y && y <= normalBtn.y + normalBtn.h) {
       normalBtn.pressed = true; normalBtn.touchId = t.identifier;
-      const angle = touchShoot.active ? Math.atan2(touchShoot.dy, touchShoot.dx) : player.angle;
+      const angle = Math.atan2(y - player.y, x - player.x);
       bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
     }
     if (x >= bigBtn.x && x <= bigBtn.x + bigBtn.w && y >= bigBtn.y && y <= bigBtn.y + bigBtn.h) {
       if (canBigShot > 0) {
         bigBtn.pressed = true; bigBtn.touchId = t.identifier;
-        const angle = touchShoot.active ? Math.atan2(touchShoot.dy, touchShoot.dx) : player.angle;
+        const angle = Math.atan2(y - player.y, x - player.x);
         bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
         canBigShot--;
       }
