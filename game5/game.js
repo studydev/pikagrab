@@ -386,6 +386,9 @@ canvas.addEventListener('touchstart', function(e) {
   for (const t of e.changedTouches) {
     const x = t.clientX - canvas.getBoundingClientRect().left;
     const y = t.clientY - canvas.getBoundingClientRect().top;
+    // 만약 버튼 영역이면 패드 할당을 건너뜀(버튼 터치 우선)
+    if (x >= normalBtn.x && x <= normalBtn.x + normalBtn.w && y >= normalBtn.y && y <= normalBtn.y + normalBtn.h) continue;
+    if (x >= bigBtn.x && x <= bigBtn.x + bigBtn.w && y >= bigBtn.y && y <= bigBtn.y + bigBtn.h) continue;
     // 이동 패드(좌하단)
     if (x < 180 && y > canvas.height-180) {
       touchMove.active = true; touchMove.id = t.identifier;
