@@ -159,11 +159,20 @@ function drawAttackButtons() {
 }
 
 // aim 각도 계산: 우선순위 - shooting pad 방향(충분한 입력), 마지막 포인터 위치, player.angle
-function getAimAngle(mx, my) {
+// 세 번째 인자 forcePointer를 true로 주면 mx,my 좌표를 우선 사용하려 시도한다(작은 거리일 경우에는 폴백).
+function getAimAngle(mx, my, forcePointer = false) {
   // shooting pad 우선
   if (touchShoot.active) {
     const len = Math.hypot(touchShoot.dx, touchShoot.dy);
     if (len > 6) return Math.atan2(touchShoot.dy, touchShoot.dx);
+  }
+  // 강제로 포인터 좌표를 사용하도록 요청된 경우(버튼 클릭/터치)
+  if (forcePointer && typeof mx === 'number' && typeof my === 'number') {
+    const dx0 = mx - player.x, dy0 = my - player.y;
+    const l0 = Math.hypot(dx0, dy0);
+    // 아주 극단적으로 플레이어와 같지 않은 한도(1px)면 해당 방향 사용
+    if (l0 > 1) return Math.atan2(dy0, dx0);
+    // 그렇지 않으면 다음 우선순위로 진행
   }
   // 마지막 포인터(클릭/터치) 사용
   if (typeof mx === 'number' && typeof my === 'number') {
@@ -383,12 +392,21 @@ function draw() {
   }
 // 모바일 터치 이벤트: 이동/슈팅 패드
 canvas.addEventListener('touchstart', function(e) {
+  // 만약 현재 활성화된 터치들 중 버튼을 누르고 있는 터치가 있다면 패드 할당을 완전 차단
+  let anyButtonTouch = false;
+  for (const at of e.touches) {
+    const ax = at.clientX - canvas.getBoundingClientRect().left;
+    const ay = at.clientY - canvas.getBoundingClientRect().top;
+    if (ax >= normalBtn.x && ax <= normalBtn.x + normalBtn.w && ay >= normalBtn.y && ay <= normalBtn.y + normalBtn.h) { anyButtonTouch = true; break; }
+    if (ax >= bigBtn.x && ax <= bigBtn.x + bigBtn.w && ay >= bigBtn.y && ay <= bigBtn.y + bigBtn.h) { anyButtonTouch = true; break; }
+  }
   for (const t of e.changedTouches) {
     const x = t.clientX - canvas.getBoundingClientRect().left;
     const y = t.clientY - canvas.getBoundingClientRect().top;
     // 만약 버튼 영역이면 패드 할당을 건너뜀(버튼 터치 우선)
     if (x >= normalBtn.x && x <= normalBtn.x + normalBtn.w && y >= normalBtn.y && y <= normalBtn.y + normalBtn.h) continue;
     if (x >= bigBtn.x && x <= bigBtn.x + bigBtn.w && y >= bigBtn.y && y <= bigBtn.y + bigBtn.h) continue;
+    if (anyButtonTouch) continue; // 다른 손가락으로 버튼을 누르고 있으면 패드 할당 금지
     // 이동 패드(좌하단)
     if (x < 180 && y > canvas.height-180) {
       touchMove.active = true; touchMove.id = t.identifier;
@@ -599,7 +617,8 @@ canvas.addEventListener('mousemove', function(e) {
     touchMove.dy = Math.max(-60, Math.min(60, my - touchMove.y));
   } else {
     // 마우스가 좌하단 조이스틱 영역에 들어오면 클릭 없이도 조이스틱 활성화
-    const inPad = (!isMobile && mx < 180 && my > canvas.height - 180);
+    // 단, 공격 버튼이 눌려있다면 hover로 패드가 활성화되지 않도록 방지
+    const inPad = (!isMobile && mx < 180 && my > canvas.height - 180 && !normalBtn.pressed && !bigBtn.pressed);
     const baseX = 90, baseY = canvas.height - 90;
     if (inPad) {
       // hover 활성화 (id = 'mousehover')
@@ -628,7 +647,9 @@ canvas.addEventListener('mousedown', function(e) {
   // 공격 버튼 클릭 처리
   if (mx >= normalBtn.x && mx <= normalBtn.x + normalBtn.w && my >= normalBtn.y && my <= normalBtn.y + normalBtn.h) {
     // 일반 공격: 조준 방향 우선
-    const angle = getAimAngle(lastPointer.x, lastPointer.y);
+    const angle = getAimAngle(mx, my, true);
+    // 디버그 및 화살표 표시를 위해 player.angle을 갱신
+    player.angle = angle;
     bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
   pushDebugEvent(`NORMAL fire ang=${angle.toFixed(2)}`);
     normalBtn.pressed = true;
@@ -637,7 +658,8 @@ canvas.addEventListener('mousedown', function(e) {
     if (mx >= bigBtn.x && mx <= bigBtn.x + bigBtn.w && my >= bigBtn.y && my <= bigBtn.y + bigBtn.h) {
     // 거대 공격
     if (canBigShot > 0) {
-  const angle = getAimAngle(lastPointer.x, lastPointer.y);
+  const angle = getAimAngle(mx, my, true);
+  player.angle = angle;
       bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
   pushDebugEvent(`BIG fire ang=${angle.toFixed(2)} left=${canBigShot-1}`);
       canBigShot--;
@@ -646,7 +668,7 @@ canvas.addEventListener('mousedown', function(e) {
     return;
   }
   // 좌하단을 클릭하면 데스크탑에서도 조이스틱 시작
-  if (!isMobile && mx < 180 && my > canvas.height - 180) {
+  if (!isMobile && mx < 180 && my > canvas.height - 180 && !normalBtn.pressed && !bigBtn.pressed) {
     touchMove.active = true;
     touchMove.id = 'mouse';
     touchMove.x = mx; touchMove.y = my; touchMove.dx = 0; touchMove.dy = 0;
@@ -688,18 +710,21 @@ canvas.addEventListener('touchstart', function(e) {
   for (const t of e.changedTouches) {
     const x = t.clientX - canvas.getBoundingClientRect().left;
     const y = t.clientY - canvas.getBoundingClientRect().top;
-    // 마지막 포인터 위치 업데이트
+    // 마지막 포인터 위치는 우선 업데이트하되, 버튼 터치 시에는 패드 할당과 충돌하지 않도록 처리
     lastPointer.x = x; lastPointer.y = y;
     if (x >= normalBtn.x && x <= normalBtn.x + normalBtn.w && y >= normalBtn.y && y <= normalBtn.y + normalBtn.h) {
       normalBtn.pressed = true; normalBtn.touchId = t.identifier;
-  const angle = getAimAngle(x, y);
+  // 버튼 터치 시에는 터치 좌표를 강제로 사용하여 각도를 계산
+  const angle = getAimAngle(x, y, true);
+  player.angle = angle;
   bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
   pushDebugEvent(`NORMAL touch fire ang=${angle.toFixed(2)}`);
     }
     if (x >= bigBtn.x && x <= bigBtn.x + bigBtn.w && y >= bigBtn.y && y <= bigBtn.y + bigBtn.h) {
       if (canBigShot > 0) {
         bigBtn.pressed = true; bigBtn.touchId = t.identifier;
-  const angle = getAimAngle(x, y);
+  const angle = getAimAngle(x, y, true);
+  player.angle = angle;
   bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
   pushDebugEvent(`BIG touch fire ang=${angle.toFixed(2)} left=${canBigShot-1}`);
         canBigShot--;
