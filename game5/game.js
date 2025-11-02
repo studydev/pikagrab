@@ -56,10 +56,24 @@ let debugShots = [];
 // 중앙에 크게 나오는 FIRE 표시(디버그용)
 let bigFire = null; // {t, text}
 
-function addTouchFlash(x, y, id) {
+function addTouchFlash(x, y, id, kind = 'none') {
   touchFlashes.push({ x, y, a: 1.0, id, t: Date.now() });
   try { if (navigator.vibrate) navigator.vibrate(20); } catch (e) {}
-  pushDebugEvent(`FLASH id=${id} at ${Math.round(x)},${Math.round(y)}`);
+  pushDebugEvent(`FLASH id=${id} at ${Math.round(x)},${Math.round(y)} kind=${kind}`);
+  // 자동 발사 시도: kind가 지정된 경우 해당 종류로 자동 발사 (중복 방지 있음)
+  if (kind === 'normal') {
+    if (!lastFiredTouchIds.has(id)) {
+      fireNormalTouch(x, y, id);
+    } else {
+      pushDebugEvent(`AUTO-SKIP NORMAL already fired id=${id}`);
+    }
+  } else if (kind === 'big') {
+    if (!lastFiredTouchIds.has(id) && canBigShot > 0) {
+      fireBigTouch(x, y, id);
+    } else {
+      pushDebugEvent(`AUTO-SKIP BIG id=${id} fired=${lastFiredTouchIds.has(id)} canBig=${canBigShot}`);
+    }
+  }
 }
 
 function fireNormalTouch(x, y, id) {
@@ -492,7 +506,7 @@ canvas.addEventListener('touchstart', function(e) {
     // 버튼/패드가 아닌 화면을 터치하면 즉시 일반 공격
     if (!handled) {
       // 즉각 피드백과 발사
-      addTouchFlash(x, y, t.identifier);
+  addTouchFlash(x, y, t.identifier, 'normal');
       if (!lastFiredTouchIds.has(t.identifier)) {
         fireNormalTouch(x, y, t.identifier);
       } else {
@@ -883,8 +897,8 @@ canvas.addEventListener('touchstart', function(e) {
     pushDebugEvent(`touch id=${t.identifier} at ${Math.round(x)},${Math.round(y)}`);
     if (x >= normalBtn.x && x <= normalBtn.x + normalBtn.w && y >= normalBtn.y && y <= normalBtn.y + normalBtn.h) {
       normalBtn.pressed = true; normalBtn.touchId = t.identifier;
-      // 즉각적인 피드백 표시(버튼이 인식되었음을 사용자에게 알려줌)
-      addTouchFlash(x, y, t.identifier);
+  // 즉각적인 피드백 표시(버튼이 인식되었음을 사용자에게 알려줌)
+  addTouchFlash(x, y, t.identifier, 'normal');
       // 실제 발사 시도 (중복 방지)
       if (!lastFiredTouchIds.has(t.identifier)) {
         fireNormalTouch(x, y, t.identifier);
@@ -900,8 +914,8 @@ canvas.addEventListener('touchstart', function(e) {
     if (x >= bigBtn.x && x <= bigBtn.x + bigBtn.w && y >= bigBtn.y && y <= bigBtn.y + bigBtn.h) {
       if (canBigShot > 0) {
         bigBtn.pressed = true; bigBtn.touchId = t.identifier;
-        // 즉각 피드백
-        addTouchFlash(x, y, t.identifier);
+  // 즉각 피드백
+  addTouchFlash(x, y, t.identifier, 'big');
         if (!lastFiredTouchIds.has(t.identifier)) {
           fireBigTouch(x, y, t.identifier);
         } else {
