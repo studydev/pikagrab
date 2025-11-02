@@ -252,28 +252,6 @@ function drawPlayer() {
   ctx.fill();
   ctx.restore();
 }
-
-function drawBullets() {
-  for (const b of bullets) {
-    // 디버그 전용 총알은 충돌 검사에 영향을 주지 않고, 확실히 시각화함
-    ctx.beginPath();
-    if (b.debugOnly) {
-      ctx.fillStyle = b.color || '#ff00ff';
-      ctx.arc(b.x, b.y, b._r || 12, 0, Math.PI * 2);
-      ctx.fill();
-      continue;
-    }
-    if (b.big) {
-      ctx.fillStyle = '#ff3300';
-      ctx.arc(b.x, b.y, 40, 0, Math.PI * 2);
-    } else {
-      ctx.fillStyle = '#ffe066';
-      ctx.arc(b.x, b.y, 8, 0, Math.PI * 2);
-    }
-    ctx.fill();
-  }
-}
-
 function drawEnemies() {
   for (const e of enemies) {
     // 각 적에 고유 id 부여(없으면)
