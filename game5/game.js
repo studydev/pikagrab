@@ -1027,6 +1027,23 @@ canvas.addEventListener('mouseup', function(e) {
   bigBtn.pressed = false;
 });
 
+// 포인터 이벤트로 다시하기 처리(마우스/터치/펜 통합)
+canvas.addEventListener('pointerdown', function(e) {
+  const p = clientToCanvas(e.clientX, e.clientY);
+  const mx = p.x, my = p.y;
+  if (!gameOver || !restartBtn.visible) return;
+  if (mx >= restartBtn.x && mx <= restartBtn.x + restartBtn.w && my >= restartBtn.y && my <= restartBtn.y + restartBtn.h) {
+    pushDebugEvent(`RESTART pointer id type=${e.pointerType} at ${Math.round(mx)},${Math.round(my)}`);
+    player.x = 400; player.y = 240; player.hp = player.maxHp;
+    bullets.length = 0;
+    enemies.length = 0;
+    cakes.length = 0;
+    charge = 0; canBigShot = 0;
+    score = 0;
+    gameOver = false;
+  }
+});
+
 // Duplicate touch handlers removed — consolidated earlier in file to avoid multiple firings
 
 // 마우스 업에서 조이스틱 해제
