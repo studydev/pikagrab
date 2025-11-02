@@ -604,7 +604,7 @@ canvas.addEventListener('touchstart', function(e) {
     // 버튼/패드가 아닌 화면을 터치하면 즉시 일반 공격
     if (!handled) {
       // 즉각 피드백과 발사
-      addTouchFlash(x, y, t.identifier, 'normal');
+  addTouchFlash(x, y, t.identifier);
       // 간단하게 즉시 총알을 직접 푸시하여 탭에서 발사가 확실히 되도록 함
       try {
         const ang = Math.atan2(y - player.y, x - player.x);
@@ -1011,75 +1011,7 @@ canvas.addEventListener('mouseup', function(e) {
   bigBtn.pressed = false;
 });
 
-// 터치로 버튼 누르기 (touchstart/touchend) — non-passive로 등록하여 preventDefault 사용
-canvas.addEventListener('touchstart', function(e) {
-  e.preventDefault();
-  pushDebugEvent(`touchstart handler entries: changed=${e.changedTouches.length} total=${e.touches.length}`);
-  for (const t of e.changedTouches) {
-    const p = clientToCanvas(t.clientX, t.clientY);
-    const x = p.x, y = p.y;
-    // 마지막 포인터 위치는 우선 업데이트하되, 버튼 터치 시에는 패드 할당과 충돌하지 않도록 처리
-    lastPointer.x = x; lastPointer.y = y;
-    pushDebugEvent(`touch id=${t.identifier} at ${Math.round(x)},${Math.round(y)}`);
-    if (x >= normalBtn.x && x <= normalBtn.x + normalBtn.w && y >= normalBtn.y && y <= normalBtn.y + normalBtn.h) {
-      normalBtn.pressed = true; normalBtn.touchId = t.identifier;
-  // 즉각적인 피드백 표시(버튼이 인식되었음을 사용자에게 알려줌)
-  addTouchFlash(x, y, t.identifier, 'normal');
-      // 실제 발사 시도 (중복 방지)
-      if (!lastFiredTouchIds.has(t.identifier)) {
-        fireNormalTouch(x, y, t.identifier);
-      }
-      // 안전망: 만약 즉시 발사가 실패하면 짧은 지연 후 재시도
-      setTimeout(() => {
-        if (!lastFiredTouchIds.has(t.identifier)) {
-          fireNormalTouch(x, y, t.identifier);
-          pushDebugEvent(`fallback NORMAL fired id=${t.identifier}`);
-        }
-      }, 80);
-    }
-    if (x >= bigBtn.x && x <= bigBtn.x + bigBtn.w && y >= bigBtn.y && y <= bigBtn.y + bigBtn.h) {
-      if (canBigShot > 0) {
-        bigBtn.pressed = true; bigBtn.touchId = t.identifier;
-  // 즉각 피드백
-  addTouchFlash(x, y, t.identifier, 'big');
-        if (!lastFiredTouchIds.has(t.identifier)) {
-          fireBigTouch(x, y, t.identifier);
-        } else {
-          pushDebugEvent(`SKIP BIG fire - already fired id=${t.identifier} size=${lastFiredTouchIds.size}`);
-        }
-        setTimeout(() => {
-          if (!lastFiredTouchIds.has(t.identifier) && canBigShot > 0) {
-            fireBigTouch(x, y, t.identifier);
-            pushDebugEvent(`fallback BIG fired id=${t.identifier}`);
-          }
-        }, 80);
-      }
-    }
-  }
-}, { passive: false });
-
-canvas.addEventListener('touchend', function(e) {
-  for (const t of e.changedTouches) {
-    if (normalBtn.touchId === t.identifier) { 
-      // touchstart에서 발사가 제대로 되지 않았으면 touchend에서 안전 발사
-      if (!lastFiredTouchIds.has(t.identifier)) {
-        // find position: use currentTouches or lastPointer
-        const pos = currentTouches[t.identifier] || { x: lastPointer.x, y: lastPointer.y };
-        fireNormalTouch(pos.x, pos.y, t.identifier);
-      }
-      normalBtn.pressed = false; normalBtn.touchId = null; 
-      lastFiredTouchIds.delete(t.identifier);
-    }
-    if (bigBtn.touchId === t.identifier) { 
-      if (!lastFiredTouchIds.has(t.identifier) && canBigShot > 0) {
-        const pos = currentTouches[t.identifier] || { x: lastPointer.x, y: lastPointer.y };
-        fireBigTouch(pos.x, pos.y, t.identifier);
-      }
-      if (bigBtn.touchId === t.identifier) { bigBtn.pressed = false; bigBtn.touchId = null; }
-      lastFiredTouchIds.delete(t.identifier);
-    }
-  }
-});
+// Duplicate touch handlers removed — consolidated earlier in file to avoid multiple firings
 
 // 마우스 업에서 조이스틱 해제
 canvas.addEventListener('mouseup', function(e) {
