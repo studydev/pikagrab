@@ -158,45 +158,18 @@ let currentTouches = {};
 let lastFiredTouchIds = new Set();
 // touch별 최근 발사 타임스탬프(중복 발사/버스트 방지)
 let firedTimestamps = {};
-// 터치 플래시(버튼 누름에 대한 시각적 피드백)
-let touchFlashes = [];
-// 임시 디버그 샷 (발사 시 즉시 보이는 시각적 표시)
+// (디버그 점 표시 비활성화) 터치/디버그 점 관련 변수들은 더이상 사용하지 않습니다
+let touchFlashes = []; // kept empty for compatibility
 let debugShots = [];
-// 발사 시 오래 보이는 디버그 마커(모바일에서 보이도록 충분히 길게 유지)
 let persistentDebugBullets = [];
-// 중앙에 크게 나오는 FIRE 표시(디버그용)
 let bigFire = null; // {t, text}
 
 function addTouchFlash(x, y, id, kind = 'none') {
-  touchFlashes.push({ x, y, a: 1.0, id, t: Date.now() });
+  // 디버그 점(캔버스 상의 원형 마커) 제거 요청에 따라 시각적 점 생성을 하지 않습니다.
   try { if (navigator.vibrate) navigator.vibrate(20); } catch (e) {}
   pushDebugEvent(`FLASH id=${id} at ${Math.round(x)},${Math.round(y)} kind=${kind}`);
-  // 항상 DOM 레이어에도 플래시를 표시하여 캔버스 렌더링과 무관하게 피드백을 확인
-  showDebugDOM(`FLASH id=${id} ${kind}`, 900);
-  // 터치 위치에 영구성 디버그 마커를 추가해 확실히 보이도록 함
-  persistentDebugBullets.push({ x: x, y: y, r: 18, color: '#00ff88', t: Date.now(), life: 1200, note: 'touch' });
-  // 자동 발사 시도: kind가 지정된 경우 해당 종류로 자동 발사 (중복 방지 있음)
-  if (kind === 'normal') {
-    if (!lastFiredTouchIds.has(id)) {
-      fireNormalTouch(x, y, id);
-    } else {
-      pushDebugEvent(`AUTO-SKIP NORMAL already fired id=${id}`);
-    }
-    // 만약 정상 발사가 화면에 표시되지 않는 경우를 대비해 시각적 디버그 전용 총알을 강제 생성
-    try {
-  const dbg = { x: player.x, y: player.y, vx: 0, vy: 0, debugOnly: true, _r: 16, _expire: Date.now() + 1200, color: '#ff00ff' };
-  safePushBullet(dbg);
-      persistentDebugBullets.push({ x: dbg.x, y: dbg.y, r: dbg._r, color: dbg.color, t: Date.now(), life: 1200 });
-      showDebugDOM('FORCED DEBUG BULLET', 900);
-      pushDebugEvent(`FORCED_DEBUG_BULLET id=${id}`);
-    } catch (e) {}
-  } else if (kind === 'big') {
-    if (!lastFiredTouchIds.has(id) && canBigShot > 0) {
-      fireBigTouch(x, y, id);
-    } else {
-      pushDebugEvent(`AUTO-SKIP BIG id=${id} fired=${lastFiredTouchIds.has(id)} canBig=${canBigShot}`);
-    }
-  }
+  // DOM 레이어의 간단한 피드백(텍스트)은 유지하되 점 표시는 하지 않음
+  showDebugDOM(`FLASH id=${id} ${kind}`, 700);
 }
 
 function fireNormalTouch(x, y, id) {
@@ -210,10 +183,6 @@ function fireNormalTouch(x, y, id) {
   if (typeof id !== 'undefined' && id !== null) lastFiredTouchIds.add(id);
   if (typeof id !== 'undefined' && id !== null) firedTimestamps[`t${id}`] = Date.now();
   addTouchFlash(x, y, id);
-  // debug shot: 화면에 즉시 보이도록 추가 (단기간)
-  debugShots.push({ x: player.x, y: player.y, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10, t: Date.now(), big:false });
-  // 영구성(몇초) 디버그 마커를 추가하여 모바일에서 확실히 보이도록 함
-  persistentDebugBullets.push({ x: b.x || player.x, y: b.y || player.y, r: 14, color: '#ff4444', t: Date.now(), life: 3000 });
   // 중앙 FIRE 표시
   bigFire = { t: Date.now(), text: 'FIRE!' };
   // DOM 레이어에도 표시
@@ -231,8 +200,6 @@ function fireBigTouch(x, y, id) {
   canBigShot = Math.max(0, canBigShot-1);
   if (typeof id !== 'undefined' && id !== null) firedTimestamps[`t${id}`] = Date.now();
   addTouchFlash(x, y, id);
-  debugShots.push({ x: player.x, y: player.y, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, t: Date.now(), big:true });
-  persistentDebugBullets.push({ x: b2.x || player.x, y: b2.y || player.y, r: 22, color: '#ff9900', t: Date.now(), life: 3000 });
   bigFire = { t: Date.now(), text: 'BIG FIRE!' };
   showDebugDOM('BIG FIRE');
 }
@@ -684,9 +651,8 @@ canvas.addEventListener('touchstart', function(e) {
   safePushBullet({ x: player.x + Math.cos(ang) * player.r, y: player.y + Math.sin(ang) * player.r, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed });
         pushDebugEvent(`TAP_DIRECT_PUSH ang=${ang.toFixed(2)} id=${t.identifier}`);
         firedTimestamps[idKey] = Date.now();
-        // 시각 표시 보강
-        debugShots.push({ x: player.x, y: player.y, vx: Math.cos(ang) * 10, vy: Math.sin(ang) * 10, t: Date.now(), big:false });
-        persistentDebugBullets.push({ x: player.x + Math.cos(ang) * player.r, y: player.y + Math.sin(ang) * player.r, r: 14, color: '#ff66aa', t: Date.now(), life: 2000 });
+  // 시각 표시 보강(비활성화됨)
+  // debugShots 및 persistentDebugBullets 생성은 비활성화되어 있습니다.
         showDebugDOM('TAP FIRE', 900);
         if (typeof t.identifier !== 'undefined' && t.identifier !== null) lastFiredTouchIds.add(t.identifier);
       } catch (e) {
@@ -767,39 +733,7 @@ canvas.addEventListener('touchend', function(e) {
   drawAlwaysVisiblePad();
   // 공격 버튼 UI
   drawAttackButtons();
-  // 디버그 샷 렌더링 (임시 시각화)
-  if (debugShots.length) {
-    const now = Date.now();
-    for (let i = debugShots.length - 1; i >= 0; i--) {
-      const s = debugShots[i];
-      const age = now - s.t;
-      const life = 600;
-      if (age > life) { debugShots.splice(i, 1); continue; }
-      // 이동시키면서 그리기
-      // vx/vy are in pixels-per-frame; apply directly for visible movement
-      s.x += s.vx;
-      s.y += s.vy;
-      ctx.save();
-      ctx.globalAlpha = 1 - age / life;
-      ctx.fillStyle = s.big ? '#ff4444' : '#ff0000';
-      ctx.beginPath(); ctx.arc(s.x, s.y, s.big ? 12 : 6, 0, Math.PI*2); ctx.fill();
-      ctx.restore();
-    }
-  }
-  // 영구성 디버그 총알 렌더링 (발사 확인용, 몇초 유지)
-  if (persistentDebugBullets.length) {
-    const now2 = Date.now();
-    for (let i = persistentDebugBullets.length - 1; i >= 0; i--) {
-      const p = persistentDebugBullets[i];
-      const age = now2 - p.t;
-      if (age > p.life) { persistentDebugBullets.splice(i, 1); continue; }
-      ctx.save();
-      ctx.globalAlpha = 0.95;
-      ctx.fillStyle = p.color || '#ff0000';
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
-      ctx.restore();
-    }
-  }
+  // 디버그 점(임시 시각화) 기능은 비활성화됨 — 화면의 원형 디버그 마커를 더 이상 그리지 않습니다.
   // bigFire 표시
   if (bigFire) {
     const age = Date.now() - bigFire.t;
@@ -815,21 +749,7 @@ canvas.addEventListener('touchend', function(e) {
       bigFire = null;
     }
   }
-  // 터치 플래시 렌더링(짧은 시간 동안 표시)
-  if (touchFlashes.length) {
-    const now = Date.now();
-    for (let i = touchFlashes.length - 1; i >= 0; i--) {
-      const f = touchFlashes[i];
-      const age = now - f.t;
-      const life = 300;
-      if (age > life) { touchFlashes.splice(i, 1); continue; }
-      const a = 1 - (age / life);
-      ctx.save();
-      ctx.globalAlpha = a * 0.9;
-      ctx.beginPath(); ctx.fillStyle = '#ffff88'; ctx.arc(f.x, f.y, 28 * (1 - age/life) + 6, 0, Math.PI*2); ctx.fill();
-      ctx.restore();
-    }
-  }
+  // 터치 플래시 렌더링은 비활성화됨
   // 디버그 오버레이
   if (DEBUG) drawDebugOverlay();
   ctx.save();
@@ -1023,9 +943,8 @@ canvas.addEventListener('mousedown', function(e) {
     player.angle = angle;
   safePushBullet({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
   pushDebugEvent(`NORMAL fire ang=${angle.toFixed(2)}`);
-  // DOM 및 퍼시스턴트 디버그 마커 표시
+  // DOM 표시만 유지 (디버그 점 비활성화)
   showDebugDOM('MOUSE NORMAL FIRE');
-  persistentDebugBullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, r: 14, color: '#ff6666', t: Date.now(), life: 2000 });
     normalBtn.pressed = true;
     return;
   }
@@ -1037,7 +956,6 @@ canvas.addEventListener('mousedown', function(e) {
   safePushBullet({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
   pushDebugEvent(`BIG fire ang=${angle.toFixed(2)} left=${canBigShot-1}`);
   showDebugDOM('MOUSE BIG FIRE');
-  persistentDebugBullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, r: 22, color: '#ffaa33', t: Date.now(), life: 2500 });
       canBigShot--;
       bigBtn.pressed = true;
     }
@@ -1073,8 +991,7 @@ canvas.addEventListener('mousedown', function(e) {
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed
     });
-    showDebugDOM('MOUSE CLICK FIRE');
-    persistentDebugBullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, r: 12, color: '#ff4444', t: Date.now(), life: 2000 });
+  showDebugDOM('MOUSE CLICK FIRE');
   }
 });
 
