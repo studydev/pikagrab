@@ -208,8 +208,9 @@ let restartBtn = { x: 0, y: 0, w: 220, h: 60, visible: false };
 let score = 0;
 let highScore = Number(localStorage.getItem('game5_highScore') || 0);
 // 공격 버튼 상태
-let normalBtn = { x: 0, y: 0, w: 120, h: 52, pressed: false, touchId: null };
-let bigBtn = { x: 0, y: 0, w: 120, h: 52, pressed: false, touchId: null };
+// normalBtn / bigBtn 제거: 버튼 UI와 버튼 입력을 사용하지 않음
+let normalBtn = null;
+let bigBtn = null;
 
 function spawnEnemy() {
   const angle = Math.random() * Math.PI * 2;
@@ -710,7 +711,7 @@ canvas.addEventListener('touchend', function(e) {
   // 항상 보이는 조이스틱 안내
   drawAlwaysVisiblePad();
   // 공격 버튼 UI
-  drawAttackButtons();
+  // attack buttons removed — no drawing
   // 디버그 점(임시 시각화) 기능은 비활성화됨 — 화면의 원형 디버그 마커를 더 이상 그리지 않습니다.
   // bigFire 표시
   if (bigFire) {
@@ -887,7 +888,7 @@ canvas.addEventListener('mousemove', function(e) {
   } else {
     // 마우스가 좌하단 조이스틱 영역에 들어오면 클릭 없이도 조이스틱 활성화
     // 단, 공격 버튼이 눌려있다면 hover로 패드가 활성화되지 않도록 방지
-    const inPad = (!isMobile && mx < 180 && my > canvas.height - 180 && !normalBtn.pressed && !bigBtn.pressed);
+  const inPad = (!isMobile && mx < 180 && my > canvas.height - 180);
     const baseX = 90, baseY = canvas.height - 90;
     if (inPad) {
       // hover 활성화 (id = 'mousehover')
@@ -913,34 +914,8 @@ canvas.addEventListener('mousedown', function(e) {
   const p = clientToCanvas(e.clientX, e.clientY);
   const mx = p.x;
   const my = p.y;
-  // 공격 버튼 클릭 처리
-  if (mx >= normalBtn.x && mx <= normalBtn.x + normalBtn.w && my >= normalBtn.y && my <= normalBtn.y + normalBtn.h) {
-    // 일반 공격: 조준 방향 우선
-    const angle = getAimAngle(mx, my, true);
-    // 디버그 및 화살표 표시를 위해 player.angle을 갱신
-    player.angle = angle;
-  safePushBullet({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
-  pushDebugEvent(`NORMAL fire ang=${angle.toFixed(2)}`);
-  // DOM 표시만 유지 (디버그 점 비활성화)
-  showDebugDOM('MOUSE NORMAL FIRE');
-    normalBtn.pressed = true;
-    return;
-  }
-    if (mx >= bigBtn.x && mx <= bigBtn.x + bigBtn.w && my >= bigBtn.y && my <= bigBtn.y + bigBtn.h) {
-    // 거대 공격
-    if (canBigShot > 0) {
-  const angle = getAimAngle(mx, my, true);
-  player.angle = angle;
-  safePushBullet({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
-  pushDebugEvent(`BIG fire ang=${angle.toFixed(2)} left=${canBigShot-1}`);
-  showDebugDOM('MOUSE BIG FIRE');
-      canBigShot--;
-      bigBtn.pressed = true;
-    }
-    return;
-  }
-  // 좌하단을 클릭하면 데스크탑에서도 조이스틱 시작
-  if (!isMobile && mx < 180 && my > canvas.height - 180 && !normalBtn.pressed && !bigBtn.pressed) {
+  // 좌하단을 클릭하면 데스크탑에서도 조이스틱 시작 (버튼 UI 없음)
+  if (!isMobile && mx < 180 && my > canvas.height - 180) {
     touchMove.active = true;
     touchMove.id = 'mouse';
     touchMove.x = mx; touchMove.y = my; touchMove.dx = 0; touchMove.dy = 0;
@@ -969,7 +944,7 @@ canvas.addEventListener('mousedown', function(e) {
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed
     });
-  showDebugDOM('MOUSE CLICK FIRE');
+    showDebugDOM('MOUSE CLICK FIRE');
   }
 });
 
