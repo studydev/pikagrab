@@ -53,6 +53,8 @@ let lastFiredTouchIds = new Set();
 let touchFlashes = [];
 // 임시 디버그 샷 (발사 시 즉시 보이는 시각적 표시)
 let debugShots = [];
+// 발사 시 오래 보이는 디버그 마커(모바일에서 보이도록 충분히 길게 유지)
+let persistentDebugBullets = [];
 // 중앙에 크게 나오는 FIRE 표시(디버그용)
 let bigFire = null; // {t, text}
 
@@ -88,6 +90,8 @@ function fireNormalTouch(x, y, id) {
   addTouchFlash(x, y, id);
   // debug shot: 화면에 즉시 보이도록 추가 (단기간)
   debugShots.push({ x: player.x, y: player.y, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10, t: Date.now(), big:false });
+  // 영구성(몇초) 디버그 마커를 추가하여 모바일에서 확실히 보이도록 함
+  persistentDebugBullets.push({ x: b.x || player.x, y: b.y || player.y, r: 14, color: '#ff4444', t: Date.now(), life: 3000 });
   // 중앙 FIRE 표시
   bigFire = { t: Date.now(), text: 'FIRE!' };
 }
@@ -103,6 +107,7 @@ function fireBigTouch(x, y, id) {
   canBigShot = Math.max(0, canBigShot-1);
   addTouchFlash(x, y, id);
   debugShots.push({ x: player.x, y: player.y, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, t: Date.now(), big:true });
+  persistentDebugBullets.push({ x: b2.x || player.x, y: b2.y || player.y, r: 22, color: '#ff9900', t: Date.now(), life: 3000 });
   bigFire = { t: Date.now(), text: 'BIG FIRE!' };
 }
 let gameOver = false;
@@ -603,12 +608,27 @@ canvas.addEventListener('touchend', function(e) {
       const life = 600;
       if (age > life) { debugShots.splice(i, 1); continue; }
       // 이동시키면서 그리기
-      s.x += s.vx * (1/60);
-      s.y += s.vy * (1/60);
+      // vx/vy are in pixels-per-frame; apply directly for visible movement
+      s.x += s.vx;
+      s.y += s.vy;
       ctx.save();
       ctx.globalAlpha = 1 - age / life;
       ctx.fillStyle = s.big ? '#ff4444' : '#ff0000';
       ctx.beginPath(); ctx.arc(s.x, s.y, s.big ? 12 : 6, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  }
+  // 영구성 디버그 총알 렌더링 (발사 확인용, 몇초 유지)
+  if (persistentDebugBullets.length) {
+    const now2 = Date.now();
+    for (let i = persistentDebugBullets.length - 1; i >= 0; i--) {
+      const p = persistentDebugBullets[i];
+      const age = now2 - p.t;
+      if (age > p.life) { persistentDebugBullets.splice(i, 1); continue; }
+      ctx.save();
+      ctx.globalAlpha = 0.95;
+      ctx.fillStyle = p.color || '#ff0000';
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
       ctx.restore();
     }
   }
