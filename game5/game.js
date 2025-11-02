@@ -55,6 +55,7 @@ let touchFlashes = [];
 function addTouchFlash(x, y, id) {
   touchFlashes.push({ x, y, a: 1.0, id, t: Date.now() });
   try { if (navigator.vibrate) navigator.vibrate(20); } catch (e) {}
+  pushDebugEvent(`FLASH id=${id} at ${Math.round(x)},${Math.round(y)}`);
 }
 
 function fireNormalTouch(x, y, id) {
@@ -62,6 +63,9 @@ function fireNormalTouch(x, y, id) {
   player.angle = angle;
   bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
   pushDebugEvent(`NORMAL touch fire ang=${angle.toFixed(2)} id=${id}`);
+  // 추가 디버그: 직후 bullets 상태
+  const b = bullets[bullets.length - 1];
+  if (b) pushDebugEvent(`BULLET_PUSHED id=${id} x=${Math.round(b.x)} y=${Math.round(b.y)} vx=${b.vx.toFixed(1)} vy=${b.vy.toFixed(1)} total=${bullets.length}`);
   if (typeof id !== 'undefined' && id !== null) lastFiredTouchIds.add(id);
   addTouchFlash(x, y, id);
 }
@@ -71,6 +75,8 @@ function fireBigTouch(x, y, id) {
   player.angle = angle;
   bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
   pushDebugEvent(`BIG touch fire ang=${angle.toFixed(2)} left=${canBigShot-1} id=${id}`);
+  const b2 = bullets[bullets.length - 1];
+  if (b2) pushDebugEvent(`BULLET_PUSHED_BIG id=${id} x=${Math.round(b2.x)} y=${Math.round(b2.y)} vx=${b2.vx.toFixed(1)} vy=${b2.vy.toFixed(1)} total=${bullets.length}`);
   if (typeof id !== 'undefined' && id !== null) lastFiredTouchIds.add(id);
   canBigShot = Math.max(0, canBigShot-1);
   addTouchFlash(x, y, id);
@@ -479,6 +485,8 @@ canvas.addEventListener('touchstart', function(e) {
       addTouchFlash(x, y, t.identifier);
       if (!lastFiredTouchIds.has(t.identifier)) {
         fireNormalTouch(x, y, t.identifier);
+      } else {
+        pushDebugEvent(`SKIP NORMAL fire - already fired id=${t.identifier} size=${lastFiredTouchIds.size}`);
       }
       // 안전망: 재시도
       setTimeout(() => {
@@ -853,6 +861,8 @@ canvas.addEventListener('touchstart', function(e) {
         addTouchFlash(x, y, t.identifier);
         if (!lastFiredTouchIds.has(t.identifier)) {
           fireBigTouch(x, y, t.identifier);
+        } else {
+          pushDebugEvent(`SKIP BIG fire - already fired id=${t.identifier} size=${lastFiredTouchIds.size}`);
         }
         setTimeout(() => {
           if (!lastFiredTouchIds.has(t.identifier) && canBigShot > 0) {
