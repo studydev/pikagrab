@@ -449,15 +449,34 @@ canvas.addEventListener('touchstart', function(e) {
     // 만약 버튼 영역이면 패드 할당을 건너뜀(버튼 터치 우선)
     if (x >= normalBtn.x && x <= normalBtn.x + normalBtn.w && y >= normalBtn.y && y <= normalBtn.y + normalBtn.h) continue;
     if (x >= bigBtn.x && x <= bigBtn.x + bigBtn.w && y >= bigBtn.y && y <= bigBtn.y + bigBtn.h) continue;
+    // 이동/슈팅 패드 또는 화면 탭(공격)
+    let handled = false;
     // 이동 패드(좌하단)
     if (x < 180 && y > canvas.height-180) {
       touchMove.active = true; touchMove.id = t.identifier;
       touchMove.x = x; touchMove.y = y; touchMove.dx = 0; touchMove.dy = 0;
+      handled = true;
     }
     // 슈팅 패드(우하단)
     if (x > canvas.width-180 && y > canvas.height-180) {
       touchShoot.active = true; touchShoot.id = t.identifier;
       touchShoot.x = x; touchShoot.y = y; touchShoot.dx = 0; touchShoot.dy = 0;
+      handled = true;
+    }
+    // 버튼/패드가 아닌 화면을 터치하면 즉시 일반 공격
+    if (!handled) {
+      // 즉각 피드백과 발사
+      addTouchFlash(x, y, t.identifier);
+      if (!lastFiredTouchIds.has(t.identifier)) {
+        fireNormalTouch(x, y, t.identifier);
+      }
+      // 안전망: 재시도
+      setTimeout(() => {
+        if (!lastFiredTouchIds.has(t.identifier)) {
+          fireNormalTouch(x, y, t.identifier);
+          pushDebugEvent(`fallback NORMAL fired (tap) id=${t.identifier}`);
+        }
+      }, 80);
     }
   }
 }, { passive: false });
