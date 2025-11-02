@@ -572,6 +572,7 @@ function draw() {
     }
     ctx.restore();
   }
+  
 // 모바일 터치 이벤트: 이동/슈팅 패드
 canvas.addEventListener('touchstart', function(e) {
   // 터치 기본 동작(확대 등)을 막음
@@ -584,6 +585,21 @@ canvas.addEventListener('touchstart', function(e) {
   for (const t of e.changedTouches) {
   const p = clientToCanvas(t.clientX, t.clientY);
   const x = p.x, y = p.y;
+    // 게임오버 상태에서 다시하기 버튼 터치 처리
+    if (gameOver && restartBtn.visible) {
+      if (x >= restartBtn.x && x <= restartBtn.x + restartBtn.w && y >= restartBtn.y && y <= restartBtn.y + restartBtn.h) {
+        pushDebugEvent(`RESTART touch id=${t.identifier} at ${Math.round(x)},${Math.round(y)}`);
+        player.x = 400; player.y = 240; player.hp = player.maxHp;
+        bullets.length = 0;
+        enemies.length = 0;
+        cakes.length = 0;
+        charge = 0; canBigShot = 0;
+        score = 0;
+        gameOver = false;
+        // consume this touch
+        continue;
+      }
+    }
     // 만약 버튼 영역이면 패드 할당을 건너뜀(버튼 터치 우선)
     if (x >= normalBtn.x && x <= normalBtn.x + normalBtn.w && y >= normalBtn.y && y <= normalBtn.y + normalBtn.h) continue;
     if (x >= bigBtn.x && x <= bigBtn.x + bigBtn.w && y >= bigBtn.y && y <= bigBtn.y + bigBtn.h) continue;
