@@ -2,6 +2,14 @@
 let isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 let touchMove = {active: false, id: null, x: 0, y: 0, dx: 0, dy: 0};
 let touchShoot = {active: false, id: null, x: 0, y: 0, dx: 0, dy: 0};
+
+// 방어용: 어떤 코드(캐시된 스크립트 혹은 외부 라이브러리)가 vibrate를 호출해도
+// 진동이 발생하지 않도록 navigator.vibrate를 안전한 no-op으로 덮어씀.
+try {
+  if (typeof navigator !== 'undefined') {
+    try { navigator.vibrate = function() { return false; }; } catch (e) { /* 일부 브라우저에서 읽기전용일 수 있음 */ }
+  }
+} catch (e) {}
 // Game 5: Brawl Stars-like Top-down Shooter (기본 샘플)
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
