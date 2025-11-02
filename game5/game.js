@@ -102,7 +102,8 @@ let charge = 0;
 let maxCharge = 9;
 let canBigShot = 0;
 // 디버그 모드: 화면에 각도/벡터/이벤트를 그림
-let DEBUG = true;
+// 디버그 출력을 완전히 비활성화합니다(좌상단의 'touch' 등 메시지 제거).
+let DEBUG = false;
 let debugEvents = [];
 // 현재 활성화된 터치들(디버깅용)
 let currentTouches = {};
@@ -805,8 +806,7 @@ function drawDebugOverlay() {
 }
 
 function pushDebugEvent(msg) {
-  debugEvents.unshift(msg);
-  if (debugEvents.length > 6) debugEvents.pop();
+  // no-op: debug output disabled to avoid on-screen 'touch' messages
 }
 
 function update() {
