@@ -32,6 +32,39 @@ const debugDom = (function(){
   } catch (e) { return null; }
 })();
 
+// persistent status panel for diagnostics (always visible)
+const debugStatus = (function(){
+  try {
+    const s = document.createElement('div');
+    s.id = 'debug-dom-status';
+    s.style.position = 'fixed';
+    s.style.right = '10px';
+    s.style.top = '10px';
+    s.style.zIndex = 99999;
+    s.style.pointerEvents = 'none';
+    s.style.background = 'rgba(0,0,0,0.6)';
+    s.style.color = '#fff';
+    s.style.padding = '8px 12px';
+    s.style.borderRadius = '6px';
+    s.style.font = '12px monospace';
+    s.style.maxWidth = '260px';
+    s.style.whiteSpace = 'pre-wrap';
+    document.body.appendChild(s);
+    return s;
+  } catch (e) { return null; }
+})();
+
+function updateDebugStatus() {
+  if (!debugStatus) return;
+  try {
+    const bulletsInfo = bullets.map((b,i)=> {
+      if (!b) return '';
+      return `#${i} ${b.debugOnly? 'DBG' : (b.big? 'BIG':'n')} (${Math.round(b.x)},${Math.round(b.y)}) vx=${(b.vx||0).toFixed(1)} vy=${(b.vy||0).toFixed(1)}`;
+    }).slice(-6).join('\n');
+    debugStatus.textContent = `bullets: ${bullets.length}\nlastEvents:\n${debugEvents.slice(0,6).join('\n')}\n---\n${bulletsInfo}`;
+  } catch (e) {}
+}
+
 function showDebugDOM(msg, ms = 1000) {
   if (!debugDom) return;
   debugDom.textContent = msg;
@@ -754,6 +787,9 @@ canvas.addEventListener('touchend', function(e) {
   ctx.fillStyle = '#fff';
   ctx.fillText(`HP: ${player.hp} / ${player.maxHp}`, 32, 76);
   ctx.restore();
+
+  // Debug DOM status 업데이트
+  updateDebugStatus();
 
   // 게임 오버 표시
   if (gameOver) {
