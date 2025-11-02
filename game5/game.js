@@ -803,17 +803,34 @@ canvas.addEventListener('touchstart', function(e) {
     pushDebugEvent(`touch id=${t.identifier} at ${Math.round(x)},${Math.round(y)}`);
     if (x >= normalBtn.x && x <= normalBtn.x + normalBtn.w && y >= normalBtn.y && y <= normalBtn.y + normalBtn.h) {
       normalBtn.pressed = true; normalBtn.touchId = t.identifier;
-      // 실제 발사 시도
+      // 즉각적인 피드백 표시(버튼이 인식되었음을 사용자에게 알려줌)
+      addTouchFlash(x, y, t.identifier);
+      // 실제 발사 시도 (중복 방지)
       if (!lastFiredTouchIds.has(t.identifier)) {
         fireNormalTouch(x, y, t.identifier);
       }
+      // 안전망: 만약 즉시 발사가 실패하면 짧은 지연 후 재시도
+      setTimeout(() => {
+        if (!lastFiredTouchIds.has(t.identifier)) {
+          fireNormalTouch(x, y, t.identifier);
+          pushDebugEvent(`fallback NORMAL fired id=${t.identifier}`);
+        }
+      }, 80);
     }
     if (x >= bigBtn.x && x <= bigBtn.x + bigBtn.w && y >= bigBtn.y && y <= bigBtn.y + bigBtn.h) {
       if (canBigShot > 0) {
         bigBtn.pressed = true; bigBtn.touchId = t.identifier;
+        // 즉각 피드백
+        addTouchFlash(x, y, t.identifier);
         if (!lastFiredTouchIds.has(t.identifier)) {
           fireBigTouch(x, y, t.identifier);
         }
+        setTimeout(() => {
+          if (!lastFiredTouchIds.has(t.identifier) && canBigShot > 0) {
+            fireBigTouch(x, y, t.identifier);
+            pushDebugEvent(`fallback BIG fired id=${t.identifier}`);
+          }
+        }, 80);
       }
     }
   }
