@@ -94,6 +94,10 @@ function addTouchFlash(x, y, id, kind = 'none') {
   touchFlashes.push({ x, y, a: 1.0, id, t: Date.now() });
   try { if (navigator.vibrate) navigator.vibrate(20); } catch (e) {}
   pushDebugEvent(`FLASH id=${id} at ${Math.round(x)},${Math.round(y)} kind=${kind}`);
+  // 항상 DOM 레이어에도 플래시를 표시하여 캔버스 렌더링과 무관하게 피드백을 확인
+  showDebugDOM(`FLASH id=${id} ${kind}`, 900);
+  // 터치 위치에 영구성 디버그 마커를 추가해 확실히 보이도록 함
+  persistentDebugBullets.push({ x: x, y: y, r: 18, color: '#00ff88', t: Date.now(), life: 1200, note: 'touch' });
   // 자동 발사 시도: kind가 지정된 경우 해당 종류로 자동 발사 (중복 방지 있음)
   if (kind === 'normal') {
     if (!lastFiredTouchIds.has(id)) {
