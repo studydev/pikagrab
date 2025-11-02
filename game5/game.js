@@ -109,13 +109,40 @@ function safePushBullet(b) {
     const now = Date.now();
     const MIN_DT = 120; // ms
     if (now - lastFireTime < MIN_DT) {
-      pushDebugEvent(`SKIP_PUSH_RATE dt=${now-lastFireTime}`);
+      pushDebugEvent(`SKIP_PUSH_RATE dt=${now - lastFireTime}`);
       return false;
     }
+
+    // Burst protection and diagnostics: keep a short sliding window of push timestamps
+    // and skip pushing if too many pushes happen within WINDOW_MS.
+    if (!safePushBullet._pushTimestamps) safePushBullet._pushTimestamps = [];
+    const ts = safePushBullet._pushTimestamps;
+    const WINDOW_MS = 1000;
+    // drop old timestamps
+    while (ts.length && now - ts[0] > WINDOW_MS) ts.shift();
+    const MAX_PER_WINDOW = 10; // allow at most this many pushes per WINDOW_MS
+    if (ts.length >= MAX_PER_WINDOW) {
+      pushDebugEvent(`SKIP_PUSH_BURST count=${ts.length}`);
+      if (typeof DEBUG !== 'undefined' && DEBUG) {
+        // capture a short stack for debugging (truncate to a few frames)
+        try {
+          const trace = (new Error()).stack || '';
+          const short = trace.split('\n').slice(1, 6).map(s => s.trim()).join(' | ');
+          pushDebugEvent(`STACK ${short}`);
+          console.warn('safePushBullet SKIP_PUSH_BURST', short);
+        } catch (ee) { /* ignore stack capture failures */ }
+      }
+      return false;
+    }
+    ts.push(now);
+
     bullets.push(b);
     lastFireTime = now;
     return true;
-  } catch (e) { return false; }
+  } catch (e) {
+    console.error('safePushBullet error', e);
+    return false;
+  }
 }
 // 마지막 포인터 위치(마우스/터치)를 추적
 let lastPointer = { x: 400, y: 240 };
