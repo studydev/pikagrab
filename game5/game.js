@@ -166,7 +166,7 @@ let bigFire = null; // {t, text}
 
 function addTouchFlash(x, y, id, kind = 'none') {
   // 디버그 점(캔버스 상의 원형 마커) 제거 요청에 따라 시각적 점 생성을 하지 않습니다.
-  try { if (navigator.vibrate) navigator.vibrate(20); } catch (e) {}
+  // 진동 제거: navigator.vibrate 호출을 제거했습니다.
   pushDebugEvent(`FLASH id=${id} at ${Math.round(x)},${Math.round(y)} kind=${kind}`);
   // DOM 레이어의 간단한 피드백(텍스트)은 유지하되 점 표시는 하지 않음
   showDebugDOM(`FLASH id=${id} ${kind}`, 700);
