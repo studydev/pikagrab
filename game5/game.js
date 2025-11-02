@@ -994,7 +994,7 @@ canvas.addEventListener('mousedown', function(e) {
     const angle = getAimAngle(mx, my, true);
     // 디버그 및 화살표 표시를 위해 player.angle을 갱신
     player.angle = angle;
-    bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
+  safePushBullet({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
   pushDebugEvent(`NORMAL fire ang=${angle.toFixed(2)}`);
   // DOM 및 퍼시스턴트 디버그 마커 표시
   showDebugDOM('MOUSE NORMAL FIRE');
@@ -1007,7 +1007,7 @@ canvas.addEventListener('mousedown', function(e) {
     if (canBigShot > 0) {
   const angle = getAimAngle(mx, my, true);
   player.angle = angle;
-      bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
+  safePushBullet({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
   pushDebugEvent(`BIG fire ang=${angle.toFixed(2)} left=${canBigShot-1}`);
   showDebugDOM('MOUSE BIG FIRE');
   persistentDebugBullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, r: 22, color: '#ffaa33', t: Date.now(), life: 2500 });
@@ -1028,7 +1028,7 @@ canvas.addEventListener('mousedown', function(e) {
     // 우클릭: 거대 총알(차지 필요)
     if (canBigShot > 0) {
       const speed = 5;
-      bullets.push({
+      safePushBullet({
         x: player.x + Math.cos(angle) * player.r,
         y: player.y + Math.sin(angle) * player.r,
         vx: Math.cos(angle) * speed,
