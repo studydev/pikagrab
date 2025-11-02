@@ -1040,7 +1040,7 @@ canvas.addEventListener('mousedown', function(e) {
   } else if (e.button === 0) {
     // 좌클릭: 일반 총알
     const speed = 10;
-    bullets.push({
+    safePushBullet({
       x: player.x + Math.cos(angle) * player.r,
       y: player.y + Math.sin(angle) * player.r,
       vx: Math.cos(angle) * speed,
