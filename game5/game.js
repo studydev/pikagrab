@@ -571,19 +571,22 @@ canvas.addEventListener('touchstart', function(e) {
     // 버튼/패드가 아닌 화면을 터치하면 즉시 일반 공격
     if (!handled) {
       // 즉각 피드백과 발사
-  addTouchFlash(x, y, t.identifier, 'normal');
-      if (!lastFiredTouchIds.has(t.identifier)) {
-        fireNormalTouch(x, y, t.identifier);
-      } else {
-        pushDebugEvent(`SKIP NORMAL fire - already fired id=${t.identifier} size=${lastFiredTouchIds.size}`);
+      addTouchFlash(x, y, t.identifier, 'normal');
+      // 간단하게 즉시 총알을 직접 푸시하여 탭에서 발사가 확실히 되도록 함
+      try {
+        const ang = Math.atan2(y - player.y, x - player.x);
+        player.angle = ang;
+        const speed = 10;
+        bullets.push({ x: player.x + Math.cos(ang) * player.r, y: player.y + Math.sin(ang) * player.r, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed });
+        pushDebugEvent(`TAP_DIRECT_PUSH ang=${ang.toFixed(2)} id=${t.identifier}`);
+        // 시각 표시 보강
+        debugShots.push({ x: player.x, y: player.y, vx: Math.cos(ang) * 10, vy: Math.sin(ang) * 10, t: Date.now(), big:false });
+        persistentDebugBullets.push({ x: player.x + Math.cos(ang) * player.r, y: player.y + Math.sin(ang) * player.r, r: 14, color: '#ff66aa', t: Date.now(), life: 2000 });
+        showDebugDOM('TAP FIRE', 900);
+        if (typeof t.identifier !== 'undefined' && t.identifier !== null) lastFiredTouchIds.add(t.identifier);
+      } catch (e) {
+        pushDebugEvent(`TAP_DIRECT_PUSH_ERR id=${t.identifier}`);
       }
-      // 안전망: 재시도
-      setTimeout(() => {
-        if (!lastFiredTouchIds.has(t.identifier)) {
-          fireNormalTouch(x, y, t.identifier);
-          pushDebugEvent(`fallback NORMAL fired (tap) id=${t.identifier}`);
-        }
-      }, 80);
     }
   }
 }, { passive: false });
