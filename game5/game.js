@@ -51,6 +51,8 @@ let currentTouches = {};
 let lastFiredTouchIds = new Set();
 // 터치 플래시(버튼 누름에 대한 시각적 피드백)
 let touchFlashes = [];
+// 임시 디버그 샷 (발사 시 즉시 보이는 시각적 표시)
+let debugShots = [];
 
 function addTouchFlash(x, y, id) {
   touchFlashes.push({ x, y, a: 1.0, id, t: Date.now() });
@@ -68,6 +70,8 @@ function fireNormalTouch(x, y, id) {
   if (b) pushDebugEvent(`BULLET_PUSHED id=${id} x=${Math.round(b.x)} y=${Math.round(b.y)} vx=${b.vx.toFixed(1)} vy=${b.vy.toFixed(1)} total=${bullets.length}`);
   if (typeof id !== 'undefined' && id !== null) lastFiredTouchIds.add(id);
   addTouchFlash(x, y, id);
+  // debug shot: 화면에 즉시 보이도록 추가 (단기간)
+  debugShots.push({ x: player.x, y: player.y, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10, t: Date.now(), big:false });
 }
 
 function fireBigTouch(x, y, id) {
@@ -80,6 +84,7 @@ function fireBigTouch(x, y, id) {
   if (typeof id !== 'undefined' && id !== null) lastFiredTouchIds.add(id);
   canBigShot = Math.max(0, canBigShot-1);
   addTouchFlash(x, y, id);
+  debugShots.push({ x: player.x, y: player.y, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, t: Date.now(), big:true });
 }
 let gameOver = false;
 let restartBtn = { x: 0, y: 0, w: 220, h: 60, visible: false };
@@ -570,6 +575,24 @@ canvas.addEventListener('touchend', function(e) {
   drawAlwaysVisiblePad();
   // 공격 버튼 UI
   drawAttackButtons();
+  // 디버그 샷 렌더링 (임시 시각화)
+  if (debugShots.length) {
+    const now = Date.now();
+    for (let i = debugShots.length - 1; i >= 0; i--) {
+      const s = debugShots[i];
+      const age = now - s.t;
+      const life = 600;
+      if (age > life) { debugShots.splice(i, 1); continue; }
+      // 이동시키면서 그리기
+      s.x += s.vx * (1/60);
+      s.y += s.vy * (1/60);
+      ctx.save();
+      ctx.globalAlpha = 1 - age / life;
+      ctx.fillStyle = s.big ? '#ff4444' : '#ff0000';
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.big ? 12 : 6, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  }
   // 터치 플래시 렌더링(짧은 시간 동안 표시)
   if (touchFlashes.length) {
     const now = Date.now();
