@@ -65,11 +65,9 @@ const debugStatus = (function(){
 function updateDebugStatus() {
   if (!debugStatus) return;
   try {
-    const bulletsInfo = bullets.map((b,i)=> {
-      if (!b) return '';
-      return `#${i} ${b.debugOnly? 'DBG' : (b.big? 'BIG':'n')} (${Math.round(b.x)},${Math.round(b.y)}) vx=${(b.vx||0).toFixed(1)} vy=${(b.vy||0).toFixed(1)}`;
-    }).slice(-6).join('\n');
-    debugStatus.textContent = `bullets: ${bullets.length}\nlastEvents:\n${debugEvents.slice(0,6).join('\n')}\n---\n${bulletsInfo}`;
+    const bulletsInfo = '';
+    // Do not include bullets.length in the debug status per user request
+    debugStatus.textContent = `lastEvents:\n${debugEvents.slice(0,6).join('\n')}`;
   } catch (e) {}
 }
 
@@ -865,16 +863,7 @@ function drawDebugOverlay() {
     ctx.fillText(`touch ${id}: ${Math.round(t.x)},${Math.round(t.y)}`, 10, ty);
     ty += 14;
   }
-  // bullets info
-  ctx.fillStyle = 'rgba(255,200,0,0.9)';
-  ctx.fillText(`bullets: ${bullets.length}`, 10, ty + 4);
-  let bi = 0;
-  for (let i = Math.max(0, bullets.length - 4); i < bullets.length; i++) {
-    const b = bullets[i];
-    if (!b) continue;
-    ctx.fillText(`b${i}: ${Math.round(b.x)},${Math.round(b.y)} vx=${b.vx.toFixed(1)},vy=${b.vy.toFixed(1)}${b.big?',BIG':''}`, 10, ty + 20 + bi * 14);
-    bi++;
-  }
+  // bullets info (disabled): do not display bullet counts/positions here
   ctx.restore();
 }
 
