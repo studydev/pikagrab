@@ -15,69 +15,15 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 canvas.width = 800;
 canvas.height = 480;
-// DOM 디버그 오버레이: canvas 렌더링 문제가 있을 때도 확실히 보이도록 HTML 레이어에 표시
-const debugDom = (function(){
-  try {
-    const d = document.createElement('div');
-    d.id = 'debug-dom-overlay';
-    d.style.position = 'fixed';
-    d.style.left = '10px';
-    d.style.top = '10px';
-    d.style.zIndex = 99999;
-    d.style.pointerEvents = 'none';
-    d.style.background = 'rgba(0,0,0,0.45)';
-    d.style.color = '#fff';
-    d.style.padding = '8px 12px';
-    d.style.borderRadius = '6px';
-    d.style.font = 'bold 18px sans-serif';
-    d.style.maxWidth = 'calc(100% - 20px)';
-    d.style.whiteSpace = 'nowrap';
-    d.style.overflow = 'hidden';
-    d.style.textOverflow = 'ellipsis';
-    d.style.display = 'none';
-    document.body.appendChild(d);
-    return d;
-  } catch (e) { return null; }
-})();
+// 디버그 DOM 오버레이 생성 비활성화: 아예 요소를 만들지 않음
+const debugDom = null;
 
-// persistent status panel for diagnostics (always visible)
-const debugStatus = (function(){
-  try {
-    const s = document.createElement('div');
-    s.id = 'debug-dom-status';
-    s.style.position = 'fixed';
-    s.style.right = '10px';
-    s.style.top = '10px';
-    s.style.zIndex = 99999;
-    s.style.pointerEvents = 'none';
-    s.style.background = 'rgba(0,0,0,0.6)';
-    s.style.color = '#fff';
-    s.style.padding = '8px 12px';
-    s.style.borderRadius = '6px';
-    s.style.font = '12px monospace';
-    s.style.maxWidth = '260px';
-    s.style.whiteSpace = 'pre-wrap';
-    document.body.appendChild(s);
-    return s;
-  } catch (e) { return null; }
-})();
+// 디버그 상태 패널 생성 비활성화
+const debugStatus = null;
 
-function updateDebugStatus() {
-  if (!debugStatus) return;
-  try {
-    const bulletsInfo = '';
-    // Do not include bullets.length in the debug status per user request
-    debugStatus.textContent = `lastEvents:\n${debugEvents.slice(0,6).join('\n')}`;
-  } catch (e) {}
-}
-
-function showDebugDOM(msg, ms = 1000) {
-  if (!debugDom) return;
-  debugDom.textContent = msg;
-  debugDom.style.display = 'block';
-  clearTimeout(debugDom._hideTimeout);
-  debugDom._hideTimeout = setTimeout(() => { debugDom.style.display = 'none'; }, ms);
-}
+// 디버그 DOM 완전 비활성화: no-op 함수로 대체
+function updateDebugStatus() { /* no-op: debugStatus removed */ }
+function showDebugDOM(msg, ms = 1000) { /* no-op: debugDom removed */ }
 // 모바일 브라우저의 더블탭/핀치 줌을 방지
 try { canvas.style.touchAction = 'none'; } catch (e) {}
 
