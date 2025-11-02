@@ -692,8 +692,9 @@ canvas.addEventListener('touchend', function(e) {
     }
   }
   // 터치 플래시 렌더링은 비활성화됨
-  // 디버그 오버레이
-  if (DEBUG) drawDebugOverlay();
+  // 디버그 오버레이 호출 제거: 좌상단에 표시되는 터치/디버그 텍스트를 숨깁니다.
+  // (필요하면 DEBUG를 true로 두고 아래 주석을 해제하세요)
+  // if (DEBUG) drawDebugOverlay();
   ctx.save();
   ctx.font = 'bold 24px sans-serif';
   ctx.fillStyle = '#170303ff';
