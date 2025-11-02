@@ -10,14 +10,25 @@ canvas.height = 480;
 // 모바일 브라우저의 더블탭/핀치 줌을 방지
 try { canvas.style.touchAction = 'none'; } catch (e) {}
 
+// helper: convert client (CSS) coords to canvas internal coords (handles CSS scaling / DPR)
+function clientToCanvas(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top) * scaleY
+  };
+}
+
 // 전역 진단: 페이지 수준에서 터치/포인터가 들어오는지 확인
 document.addEventListener('touchstart', function(e) {
   // don't preventDefault here; just log
   pushDebugEvent(`GLOBAL touchstart changed=${e.changedTouches.length} total=${e.touches.length}`);
 }, { passive: true, capture: true });
 document.addEventListener('pointerdown', function(e) {
-  const rect = canvas.getBoundingClientRect();
-  const x = Math.round(e.clientX - rect.left), y = Math.round(e.clientY - rect.top);
+  const p = clientToCanvas(e.clientX, e.clientY);
+  const x = Math.round(p.x), y = Math.round(p.y);
   pushDebugEvent(`GLOBAL pointerdown type=${e.pointerType} btn=${e.button} at=${x},${y}`);
 }, { passive: true, capture: true });
 
@@ -439,13 +450,12 @@ canvas.addEventListener('touchstart', function(e) {
   e.preventDefault();
   // 업데이트 currentTouches for debugging
   for (const t of e.changedTouches) {
-    const tx = t.clientX - canvas.getBoundingClientRect().left;
-    const ty = t.clientY - canvas.getBoundingClientRect().top;
-    currentTouches[t.identifier] = { x: tx, y: ty };
+    const p = clientToCanvas(t.clientX, t.clientY);
+    currentTouches[t.identifier] = { x: p.x, y: p.y };
   }
   for (const t of e.changedTouches) {
-    const x = t.clientX - canvas.getBoundingClientRect().left;
-    const y = t.clientY - canvas.getBoundingClientRect().top;
+  const p = clientToCanvas(t.clientX, t.clientY);
+  const x = p.x, y = p.y;
     // 만약 버튼 영역이면 패드 할당을 건너뜀(버튼 터치 우선)
     if (x >= normalBtn.x && x <= normalBtn.x + normalBtn.w && y >= normalBtn.y && y <= normalBtn.y + normalBtn.h) continue;
     if (x >= bigBtn.x && x <= bigBtn.x + bigBtn.w && y >= bigBtn.y && y <= bigBtn.y + bigBtn.h) continue;
@@ -483,15 +493,15 @@ canvas.addEventListener('touchstart', function(e) {
 canvas.addEventListener('touchmove', function(e) {
   e.preventDefault();
   for (const t of e.changedTouches) {
-    const tx = t.clientX - canvas.getBoundingClientRect().left;
-    const ty = t.clientY - canvas.getBoundingClientRect().top;
+    const p = clientToCanvas(t.clientX, t.clientY);
+    const tx = p.x, ty = p.y;
     if (currentTouches[t.identifier]) {
       currentTouches[t.identifier].x = tx; currentTouches[t.identifier].y = ty;
     }
   }
   for (const t of e.changedTouches) {
-    const x = t.clientX - canvas.getBoundingClientRect().left;
-    const y = t.clientY - canvas.getBoundingClientRect().top;
+  const p = clientToCanvas(t.clientX, t.clientY);
+  const x = p.x, y = p.y;
     // 이동 패드
     if (touchMove.active && t.identifier === touchMove.id) {
       touchMove.dx = Math.max(-60, Math.min(60, x - touchMove.x));
@@ -625,9 +635,9 @@ canvas.addEventListener('touchend', function(e) {
 // 다시하기 버튼 클릭 처리
 canvas.addEventListener('mousedown', function(e) {
   if (!gameOver || !restartBtn.visible) return;
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
+  const p = clientToCanvas(e.clientX, e.clientY);
+  const mx = p.x;
+  const my = p.y;
   if (
     mx >= restartBtn.x && mx <= restartBtn.x + restartBtn.w &&
     my >= restartBtn.y && my <= restartBtn.y + restartBtn.h
@@ -709,9 +719,9 @@ window.addEventListener('keydown', e => { keys[e.key] = true; });
 window.addEventListener('keyup', e => { keys[e.key] = false; });
 
 canvas.addEventListener('mousemove', function(e) {
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
+  const p = clientToCanvas(e.clientX, e.clientY);
+  const mx = p.x;
+  const my = p.y;
   player.angle = Math.atan2(my - player.y, mx - player.x);
   // 마지막 포인터 위치 업데이트
   lastPointer.x = mx; lastPointer.y = my;
@@ -746,9 +756,9 @@ canvas.addEventListener('mousemove', function(e) {
 });
 
 canvas.addEventListener('mousedown', function(e) {
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
+  const p = clientToCanvas(e.clientX, e.clientY);
+  const mx = p.x;
+  const my = p.y;
   // 공격 버튼 클릭 처리
   if (mx >= normalBtn.x && mx <= normalBtn.x + normalBtn.w && my >= normalBtn.y && my <= normalBtn.y + normalBtn.h) {
     // 일반 공격: 조준 방향 우선
@@ -815,8 +825,8 @@ canvas.addEventListener('touchstart', function(e) {
   e.preventDefault();
   pushDebugEvent(`touchstart handler entries: changed=${e.changedTouches.length} total=${e.touches.length}`);
   for (const t of e.changedTouches) {
-    const x = t.clientX - canvas.getBoundingClientRect().left;
-    const y = t.clientY - canvas.getBoundingClientRect().top;
+    const p = clientToCanvas(t.clientX, t.clientY);
+    const x = p.x, y = p.y;
     // 마지막 포인터 위치는 우선 업데이트하되, 버튼 터치 시에는 패드 할당과 충돌하지 않도록 처리
     lastPointer.x = x; lastPointer.y = y;
     pushDebugEvent(`touch id=${t.identifier} at ${Math.round(x)},${Math.round(y)}`);
