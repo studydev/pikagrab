@@ -7,6 +7,38 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 canvas.width = 800;
 canvas.height = 480;
+// DOM 디버그 오버레이: canvas 렌더링 문제가 있을 때도 확실히 보이도록 HTML 레이어에 표시
+const debugDom = (function(){
+  try {
+    const d = document.createElement('div');
+    d.id = 'debug-dom-overlay';
+    d.style.position = 'fixed';
+    d.style.left = '10px';
+    d.style.top = '10px';
+    d.style.zIndex = 99999;
+    d.style.pointerEvents = 'none';
+    d.style.background = 'rgba(0,0,0,0.45)';
+    d.style.color = '#fff';
+    d.style.padding = '8px 12px';
+    d.style.borderRadius = '6px';
+    d.style.font = 'bold 18px sans-serif';
+    d.style.maxWidth = 'calc(100% - 20px)';
+    d.style.whiteSpace = 'nowrap';
+    d.style.overflow = 'hidden';
+    d.style.textOverflow = 'ellipsis';
+    d.style.display = 'none';
+    document.body.appendChild(d);
+    return d;
+  } catch (e) { return null; }
+})();
+
+function showDebugDOM(msg, ms = 1000) {
+  if (!debugDom) return;
+  debugDom.textContent = msg;
+  debugDom.style.display = 'block';
+  clearTimeout(debugDom._hideTimeout);
+  debugDom._hideTimeout = setTimeout(() => { debugDom.style.display = 'none'; }, ms);
+}
 // 모바일 브라우저의 더블탭/핀치 줌을 방지
 try { canvas.style.touchAction = 'none'; } catch (e) {}
 
@@ -94,6 +126,8 @@ function fireNormalTouch(x, y, id) {
   persistentDebugBullets.push({ x: b.x || player.x, y: b.y || player.y, r: 14, color: '#ff4444', t: Date.now(), life: 3000 });
   // 중앙 FIRE 표시
   bigFire = { t: Date.now(), text: 'FIRE!' };
+  // DOM 레이어에도 표시
+  showDebugDOM('NORMAL FIRE');
 }
 
 function fireBigTouch(x, y, id) {
@@ -109,6 +143,7 @@ function fireBigTouch(x, y, id) {
   debugShots.push({ x: player.x, y: player.y, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, t: Date.now(), big:true });
   persistentDebugBullets.push({ x: b2.x || player.x, y: b2.y || player.y, r: 22, color: '#ff9900', t: Date.now(), life: 3000 });
   bigFire = { t: Date.now(), text: 'BIG FIRE!' };
+  showDebugDOM('BIG FIRE');
 }
 let gameOver = false;
 let restartBtn = { x: 0, y: 0, w: 220, h: 60, visible: false };
