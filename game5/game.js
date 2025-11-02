@@ -208,9 +208,8 @@ let restartBtn = { x: 0, y: 0, w: 220, h: 60, visible: false };
 let score = 0;
 let highScore = Number(localStorage.getItem('game5_highScore') || 0);
 // 공격 버튼 상태
-// normalBtn / bigBtn 제거: 버튼 UI와 버튼 입력을 사용하지 않음
-let normalBtn = null;
-let bigBtn = null;
+let normalBtn = { x: 0, y: 0, w: 120, h: 52, pressed: false, touchId: null };
+let bigBtn = { x: 0, y: 0, w: 120, h: 52, pressed: false, touchId: null };
 
 function spawnEnemy() {
   const angle = Math.random() * Math.PI * 2;
@@ -253,6 +252,28 @@ function drawPlayer() {
   ctx.fill();
   ctx.restore();
 }
+
+function drawBullets() {
+  for (const b of bullets) {
+    // 디버그 전용 총알은 충돌 검사에 영향을 주지 않고, 확실히 시각화함
+    ctx.beginPath();
+    if (b.debugOnly) {
+      ctx.fillStyle = b.color || '#ff00ff';
+      ctx.arc(b.x, b.y, b._r || 12, 0, Math.PI * 2);
+      ctx.fill();
+      continue;
+    }
+    if (b.big) {
+      ctx.fillStyle = '#ff3300';
+      ctx.arc(b.x, b.y, 40, 0, Math.PI * 2);
+    } else {
+      ctx.fillStyle = '#ffe066';
+      ctx.arc(b.x, b.y, 8, 0, Math.PI * 2);
+    }
+    ctx.fill();
+  }
+}
+
 function drawEnemies() {
   for (const e of enemies) {
     // 각 적에 고유 id 부여(없으면)
@@ -301,7 +322,29 @@ function drawCakes() {
 }
 
 function drawAttackButtons() {
-  // attack buttons removed — no UI to draw
+  // 버튼 위치를 매 프레임 계산(우하단 기준)
+  normalBtn.x = canvas.width - 160;
+  normalBtn.y = canvas.height - 160;
+  bigBtn.x = canvas.width - 160;
+  bigBtn.y = canvas.height - 90;
+
+  // 일반 버튼
+  ctx.save();
+  ctx.fillStyle = normalBtn.pressed ? '#ddd' : '#fff';
+  ctx.fillRect(normalBtn.x, normalBtn.y, normalBtn.w, normalBtn.h);
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.strokeRect(normalBtn.x, normalBtn.y, normalBtn.w, normalBtn.h);
+  ctx.font = 'bold 18px sans-serif'; ctx.fillStyle = '#222'; ctx.textAlign = 'center';
+  ctx.fillText('일반공격', normalBtn.x + normalBtn.w/2, normalBtn.y + 34);
+  // 거대 버튼
+  ctx.fillStyle = bigBtn.pressed ? '#ffb3b3' : '#ffdddd';
+  ctx.fillRect(bigBtn.x, bigBtn.y, bigBtn.w, bigBtn.h);
+  ctx.strokeStyle = '#b33'; ctx.lineWidth = 2; ctx.strokeRect(bigBtn.x, bigBtn.y, bigBtn.w, bigBtn.h);
+  ctx.fillStyle = '#550';
+  ctx.fillText('거대공격', bigBtn.x + bigBtn.w/2, bigBtn.y + 34);
+  // 거대공격 보유 수
+  ctx.font = 'bold 14px sans-serif'; ctx.fillStyle = '#00f';
+  ctx.fillText(`x${canBigShot}`, bigBtn.x + bigBtn.w - 18, bigBtn.y + 16);
+  ctx.restore();
 }
 
 // aim 각도 계산: 우선순위 - shooting pad 방향(충분한 입력), 마지막 포인터 위치, player.angle
@@ -579,7 +622,9 @@ canvas.addEventListener('touchstart', function(e) {
         continue;
       }
     }
-  // (버튼 UI 제거) 버튼 영역 관련 검사 제거
+    // 만약 버튼 영역이면 패드 할당을 건너뜀(버튼 터치 우선)
+    if (x >= normalBtn.x && x <= normalBtn.x + normalBtn.w && y >= normalBtn.y && y <= normalBtn.y + normalBtn.h) continue;
+    if (x >= bigBtn.x && x <= bigBtn.x + bigBtn.w && y >= bigBtn.y && y <= bigBtn.y + bigBtn.h) continue;
     // 이동/슈팅 패드 또는 화면 탭(공격)
     let handled = false;
     // 이동 패드(좌하단)
@@ -687,7 +732,7 @@ canvas.addEventListener('touchend', function(e) {
   // 항상 보이는 조이스틱 안내
   drawAlwaysVisiblePad();
   // 공격 버튼 UI
-  // attack buttons removed — no drawing
+  drawAttackButtons();
   // 디버그 점(임시 시각화) 기능은 비활성화됨 — 화면의 원형 디버그 마커를 더 이상 그리지 않습니다.
   // bigFire 표시
   if (bigFire) {
@@ -864,7 +909,7 @@ canvas.addEventListener('mousemove', function(e) {
   } else {
     // 마우스가 좌하단 조이스틱 영역에 들어오면 클릭 없이도 조이스틱 활성화
     // 단, 공격 버튼이 눌려있다면 hover로 패드가 활성화되지 않도록 방지
-  const inPad = (!isMobile && mx < 180 && my > canvas.height - 180);
+    const inPad = (!isMobile && mx < 180 && my > canvas.height - 180 && !normalBtn.pressed && !bigBtn.pressed);
     const baseX = 90, baseY = canvas.height - 90;
     if (inPad) {
       // hover 활성화 (id = 'mousehover')
@@ -890,8 +935,34 @@ canvas.addEventListener('mousedown', function(e) {
   const p = clientToCanvas(e.clientX, e.clientY);
   const mx = p.x;
   const my = p.y;
-  // 좌하단을 클릭하면 데스크탑에서도 조이스틱 시작 (버튼 UI 없음)
-  if (!isMobile && mx < 180 && my > canvas.height - 180) {
+  // 공격 버튼 클릭 처리
+  if (mx >= normalBtn.x && mx <= normalBtn.x + normalBtn.w && my >= normalBtn.y && my <= normalBtn.y + normalBtn.h) {
+    // 일반 공격: 조준 방향 우선
+    const angle = getAimAngle(mx, my, true);
+    // 디버그 및 화살표 표시를 위해 player.angle을 갱신
+    player.angle = angle;
+  safePushBullet({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
+  pushDebugEvent(`NORMAL fire ang=${angle.toFixed(2)}`);
+  // DOM 표시만 유지 (디버그 점 비활성화)
+  showDebugDOM('MOUSE NORMAL FIRE');
+    normalBtn.pressed = true;
+    return;
+  }
+    if (mx >= bigBtn.x && mx <= bigBtn.x + bigBtn.w && my >= bigBtn.y && my <= bigBtn.y + bigBtn.h) {
+    // 거대 공격
+    if (canBigShot > 0) {
+  const angle = getAimAngle(mx, my, true);
+  player.angle = angle;
+  safePushBullet({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
+  pushDebugEvent(`BIG fire ang=${angle.toFixed(2)} left=${canBigShot-1}`);
+  showDebugDOM('MOUSE BIG FIRE');
+      canBigShot--;
+      bigBtn.pressed = true;
+    }
+    return;
+  }
+  // 좌하단을 클릭하면 데스크탑에서도 조이스틱 시작
+  if (!isMobile && mx < 180 && my > canvas.height - 180 && !normalBtn.pressed && !bigBtn.pressed) {
     touchMove.active = true;
     touchMove.id = 'mouse';
     touchMove.x = mx; touchMove.y = my; touchMove.dx = 0; touchMove.dy = 0;
@@ -920,11 +991,14 @@ canvas.addEventListener('mousedown', function(e) {
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed
     });
-    showDebugDOM('MOUSE CLICK FIRE');
+  showDebugDOM('MOUSE CLICK FIRE');
   }
 });
 
-// removed: mouseup handler clearing removed button pressed states (buttons removed)
+canvas.addEventListener('mouseup', function(e) {
+  normalBtn.pressed = false;
+  bigBtn.pressed = false;
+});
 
 // 포인터 이벤트로 다시하기 처리(마우스/터치/펜 통합)
 canvas.addEventListener('pointerdown', function(e) {
