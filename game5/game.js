@@ -53,6 +53,8 @@ let lastFiredTouchIds = new Set();
 let touchFlashes = [];
 // 임시 디버그 샷 (발사 시 즉시 보이는 시각적 표시)
 let debugShots = [];
+// 중앙에 크게 나오는 FIRE 표시(디버그용)
+let bigFire = null; // {t, text}
 
 function addTouchFlash(x, y, id) {
   touchFlashes.push({ x, y, a: 1.0, id, t: Date.now() });
@@ -72,6 +74,8 @@ function fireNormalTouch(x, y, id) {
   addTouchFlash(x, y, id);
   // debug shot: 화면에 즉시 보이도록 추가 (단기간)
   debugShots.push({ x: player.x, y: player.y, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10, t: Date.now(), big:false });
+  // 중앙 FIRE 표시
+  bigFire = { t: Date.now(), text: 'FIRE!' };
 }
 
 function fireBigTouch(x, y, id) {
@@ -85,6 +89,7 @@ function fireBigTouch(x, y, id) {
   canBigShot = Math.max(0, canBigShot-1);
   addTouchFlash(x, y, id);
   debugShots.push({ x: player.x, y: player.y, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, t: Date.now(), big:true });
+  bigFire = { t: Date.now(), text: 'BIG FIRE!' };
 }
 let gameOver = false;
 let restartBtn = { x: 0, y: 0, w: 220, h: 60, visible: false };
@@ -591,6 +596,21 @@ canvas.addEventListener('touchend', function(e) {
       ctx.fillStyle = s.big ? '#ff4444' : '#ff0000';
       ctx.beginPath(); ctx.arc(s.x, s.y, s.big ? 12 : 6, 0, Math.PI*2); ctx.fill();
       ctx.restore();
+    }
+  }
+  // bigFire 표시
+  if (bigFire) {
+    const age = Date.now() - bigFire.t;
+    if (age < 400) {
+      ctx.save();
+      ctx.globalAlpha = 1 - age / 400;
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 48px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(bigFire.text, canvas.width/2, canvas.height/2);
+      ctx.restore();
+    } else {
+      bigFire = null;
     }
   }
   // 터치 플래시 렌더링(짧은 시간 동안 표시)
