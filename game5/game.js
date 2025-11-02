@@ -654,7 +654,7 @@ canvas.addEventListener('touchstart', function(e) {
         const ang = Math.atan2(y - player.y, x - player.x);
         player.angle = ang;
         const speed = 10;
-        bullets.push({ x: player.x + Math.cos(ang) * player.r, y: player.y + Math.sin(ang) * player.r, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed });
+  safePushBullet({ x: player.x + Math.cos(ang) * player.r, y: player.y + Math.sin(ang) * player.r, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed });
         pushDebugEvent(`TAP_DIRECT_PUSH ang=${ang.toFixed(2)} id=${t.identifier}`);
         firedTimestamps[idKey] = Date.now();
         // 시각 표시 보강
@@ -712,7 +712,7 @@ canvas.addEventListener('touchend', function(e) {
         let big = false;
         if (canBigShot > 0 && e.touches.length > 1) { big = true; canBigShot--; }
         const speed = big ? 5 : 10;
-        bullets.push({
+        safePushBullet({
           x: player.x + (dx/len) * player.r,
           y: player.y + (dy/len) * player.r,
           vx: (dx/len) * speed,
