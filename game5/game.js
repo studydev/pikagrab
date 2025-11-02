@@ -114,6 +114,8 @@ let debugEvents = [];
 let currentTouches = {};
 // touch id로 이미 발사한 터치를 추적하여 중복 발사를 방지
 let lastFiredTouchIds = new Set();
+// touch별 최근 발사 타임스탬프(중복 발사/버스트 방지)
+let firedTimestamps = {};
 // 터치 플래시(버튼 누름에 대한 시각적 피드백)
 let touchFlashes = [];
 // 임시 디버그 샷 (발사 시 즉시 보이는 시각적 표시)
@@ -164,6 +166,7 @@ function fireNormalTouch(x, y, id) {
   const b = bullets[bullets.length - 1];
   if (b) pushDebugEvent(`BULLET_PUSHED id=${id} x=${Math.round(b.x)} y=${Math.round(b.y)} vx=${b.vx.toFixed(1)} vy=${b.vy.toFixed(1)} total=${bullets.length}`);
   if (typeof id !== 'undefined' && id !== null) lastFiredTouchIds.add(id);
+  if (typeof id !== 'undefined' && id !== null) firedTimestamps[`t${id}`] = Date.now();
   addTouchFlash(x, y, id);
   // debug shot: 화면에 즉시 보이도록 추가 (단기간)
   debugShots.push({ x: player.x, y: player.y, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10, t: Date.now(), big:false });
@@ -184,6 +187,7 @@ function fireBigTouch(x, y, id) {
   if (b2) pushDebugEvent(`BULLET_PUSHED_BIG id=${id} x=${Math.round(b2.x)} y=${Math.round(b2.y)} vx=${b2.vx.toFixed(1)} vy=${b2.vy.toFixed(1)} total=${bullets.length}`);
   if (typeof id !== 'undefined' && id !== null) lastFiredTouchIds.add(id);
   canBigShot = Math.max(0, canBigShot-1);
+  if (typeof id !== 'undefined' && id !== null) firedTimestamps[`t${id}`] = Date.now();
   addTouchFlash(x, y, id);
   debugShots.push({ x: player.x, y: player.y, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, t: Date.now(), big:true });
   persistentDebugBullets.push({ x: b2.x || player.x, y: b2.y || player.y, r: 22, color: '#ff9900', t: Date.now(), life: 3000 });
@@ -585,6 +589,15 @@ canvas.addEventListener('touchstart', function(e) {
   for (const t of e.changedTouches) {
   const p = clientToCanvas(t.clientX, t.clientY);
   const x = p.x, y = p.y;
+    // 터치별 쿨다운(중복/버스트 발사 방지)
+    const idKey = `t${t.identifier}`;
+    const now = Date.now();
+    if (firedTimestamps[idKey] && now - firedTimestamps[idKey] < 300) {
+      pushDebugEvent(`SKIP_TOUCH_FAST id=${t.identifier} dt=${now - firedTimestamps[idKey]}`);
+      // update currentTouches but skip further handling
+      currentTouches[t.identifier] = { x: p.x, y: p.y };
+      continue;
+    }
     // 게임오버 상태에서 다시하기 버튼 터치 처리
     if (gameOver && restartBtn.visible) {
       if (x >= restartBtn.x && x <= restartBtn.x + restartBtn.w && y >= restartBtn.y && y <= restartBtn.y + restartBtn.h) {
@@ -620,7 +633,7 @@ canvas.addEventListener('touchstart', function(e) {
     // 버튼/패드가 아닌 화면을 터치하면 즉시 일반 공격
     if (!handled) {
       // 즉각 피드백과 발사
-  addTouchFlash(x, y, t.identifier);
+      addTouchFlash(x, y, t.identifier);
       // 간단하게 즉시 총알을 직접 푸시하여 탭에서 발사가 확실히 되도록 함
       try {
         const ang = Math.atan2(y - player.y, x - player.x);
@@ -628,6 +641,7 @@ canvas.addEventListener('touchstart', function(e) {
         const speed = 10;
         bullets.push({ x: player.x + Math.cos(ang) * player.r, y: player.y + Math.sin(ang) * player.r, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed });
         pushDebugEvent(`TAP_DIRECT_PUSH ang=${ang.toFixed(2)} id=${t.identifier}`);
+        firedTimestamps[idKey] = Date.now();
         // 시각 표시 보강
         debugShots.push({ x: player.x, y: player.y, vx: Math.cos(ang) * 10, vy: Math.sin(ang) * 10, t: Date.now(), big:false });
         persistentDebugBullets.push({ x: player.x + Math.cos(ang) * player.r, y: player.y + Math.sin(ang) * player.r, r: 14, color: '#ff66aa', t: Date.now(), life: 2000 });
