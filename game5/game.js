@@ -579,9 +579,7 @@ canvas.addEventListener('touchstart', function(e) {
         continue;
       }
     }
-    // 만약 버튼 영역이면 패드 할당을 건너뜀(버튼 터치 우선)
-    if (x >= normalBtn.x && x <= normalBtn.x + normalBtn.w && y >= normalBtn.y && y <= normalBtn.y + normalBtn.h) continue;
-    if (x >= bigBtn.x && x <= bigBtn.x + bigBtn.w && y >= bigBtn.y && y <= bigBtn.y + bigBtn.h) continue;
+  // (버튼 UI 제거) 버튼 영역 관련 검사 제거
     // 이동/슈팅 패드 또는 화면 탭(공격)
     let handled = false;
     // 이동 패드(좌하단)
