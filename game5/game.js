@@ -105,6 +105,14 @@ function addTouchFlash(x, y, id, kind = 'none') {
     } else {
       pushDebugEvent(`AUTO-SKIP NORMAL already fired id=${id}`);
     }
+    // 만약 정상 발사가 화면에 표시되지 않는 경우를 대비해 시각적 디버그 전용 총알을 강제 생성
+    try {
+      const dbg = { x: player.x, y: player.y, vx: 0, vy: 0, debugOnly: true, _r: 16, _expire: Date.now() + 1200, color: '#ff00ff' };
+      bullets.push(dbg);
+      persistentDebugBullets.push({ x: dbg.x, y: dbg.y, r: dbg._r, color: dbg.color, t: Date.now(), life: 1200 });
+      showDebugDOM('FORCED DEBUG BULLET', 900);
+      pushDebugEvent(`FORCED_DEBUG_BULLET id=${id}`);
+    } catch (e) {}
   } else if (kind === 'big') {
     if (!lastFiredTouchIds.has(id) && canBigShot > 0) {
       fireBigTouch(x, y, id);
@@ -201,7 +209,14 @@ function drawPlayer() {
 
 function drawBullets() {
   for (const b of bullets) {
+    // 디버그 전용 총알은 충돌 검사에 영향을 주지 않고, 확실히 시각화함
     ctx.beginPath();
+    if (b.debugOnly) {
+      ctx.fillStyle = b.color || '#ff00ff';
+      ctx.arc(b.x, b.y, b._r || 12, 0, Math.PI * 2);
+      ctx.fill();
+      continue;
+    }
     if (b.big) {
       ctx.fillStyle = '#ff3300';
       ctx.arc(b.x, b.y, 40, 0, Math.PI * 2);
@@ -364,10 +379,15 @@ function updatePlayer() {
 function updateBullets() {
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
+    // 디버그 전용 총알은 이동하지 않고 일정 시간 이후 제거
+    if (b.debugOnly) {
+      if (Date.now() > (b._expire || 0)) bullets.splice(i, 1);
+      continue;
+    }
     b.x += b.vx;
     b.y += b.vy;
     // 화면 밖 제거 (거대 총알은 반지름 24)
-  const radius = b.big ? 40 : 8;
+    const radius = b.big ? 40 : 8;
     if (b.x < -radius || b.x > canvas.width + radius || b.y < -radius || b.y > canvas.height + radius) {
       bullets.splice(i, 1);
     }
@@ -397,6 +417,7 @@ function checkCollisions() {
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
     // 거대 총알은 관통한 적 id를 저장
+    if (b.debugOnly) continue; // 디버그 전용 총알은 충돌 검사 무시
     if (b.big && !b.hitIds) b.hitIds = [];
     for (let j = enemies.length - 1; j >= 0; j--) {
       const e = enemies[j];
@@ -891,6 +912,9 @@ canvas.addEventListener('mousedown', function(e) {
     player.angle = angle;
     bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
   pushDebugEvent(`NORMAL fire ang=${angle.toFixed(2)}`);
+  // DOM 및 퍼시스턴트 디버그 마커 표시
+  showDebugDOM('MOUSE NORMAL FIRE');
+  persistentDebugBullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, r: 14, color: '#ff6666', t: Date.now(), life: 2000 });
     normalBtn.pressed = true;
     return;
   }
@@ -901,6 +925,8 @@ canvas.addEventListener('mousedown', function(e) {
   player.angle = angle;
       bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
   pushDebugEvent(`BIG fire ang=${angle.toFixed(2)} left=${canBigShot-1}`);
+  showDebugDOM('MOUSE BIG FIRE');
+  persistentDebugBullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, r: 22, color: '#ffaa33', t: Date.now(), life: 2500 });
       canBigShot--;
       bigBtn.pressed = true;
     }
@@ -936,6 +962,8 @@ canvas.addEventListener('mousedown', function(e) {
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed
     });
+    showDebugDOM('MOUSE CLICK FIRE');
+    persistentDebugBullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, r: 12, color: '#ff4444', t: Date.now(), life: 2000 });
   }
 });
 
