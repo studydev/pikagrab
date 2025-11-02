@@ -301,29 +301,7 @@ function drawCakes() {
 }
 
 function drawAttackButtons() {
-  // 버튼 위치를 매 프레임 계산(우하단 기준)
-  normalBtn.x = canvas.width - 160;
-  normalBtn.y = canvas.height - 160;
-  bigBtn.x = canvas.width - 160;
-  bigBtn.y = canvas.height - 90;
-
-  // 일반 버튼
-  ctx.save();
-  ctx.fillStyle = normalBtn.pressed ? '#ddd' : '#fff';
-  ctx.fillRect(normalBtn.x, normalBtn.y, normalBtn.w, normalBtn.h);
-  ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.strokeRect(normalBtn.x, normalBtn.y, normalBtn.w, normalBtn.h);
-  ctx.font = 'bold 18px sans-serif'; ctx.fillStyle = '#222'; ctx.textAlign = 'center';
-  ctx.fillText('일반공격', normalBtn.x + normalBtn.w/2, normalBtn.y + 34);
-  // 거대 버튼
-  ctx.fillStyle = bigBtn.pressed ? '#ffb3b3' : '#ffdddd';
-  ctx.fillRect(bigBtn.x, bigBtn.y, bigBtn.w, bigBtn.h);
-  ctx.strokeStyle = '#b33'; ctx.lineWidth = 2; ctx.strokeRect(bigBtn.x, bigBtn.y, bigBtn.w, bigBtn.h);
-  ctx.fillStyle = '#550';
-  ctx.fillText('거대공격', bigBtn.x + bigBtn.w/2, bigBtn.y + 34);
-  // 거대공격 보유 수
-  ctx.font = 'bold 14px sans-serif'; ctx.fillStyle = '#00f';
-  ctx.fillText(`x${canBigShot}`, bigBtn.x + bigBtn.w - 18, bigBtn.y + 16);
-  ctx.restore();
+  // attack buttons removed — no UI to draw
 }
 
 // aim 각도 계산: 우선순위 - shooting pad 방향(충분한 입력), 마지막 포인터 위치, player.angle
@@ -948,10 +926,7 @@ canvas.addEventListener('mousedown', function(e) {
   }
 });
 
-canvas.addEventListener('mouseup', function(e) {
-  normalBtn.pressed = false;
-  bigBtn.pressed = false;
-});
+// removed: mouseup handler clearing removed button pressed states (buttons removed)
 
 // 포인터 이벤트로 다시하기 처리(마우스/터치/펜 통합)
 canvas.addEventListener('pointerdown', function(e) {
