@@ -102,6 +102,21 @@ let keys = {};
 let bullets = [];
 let enemies = [];
 let cakes = [];
+// 전역 발사 레이트 리미터(하나의 입력에서 대량 발사 방지)
+let lastFireTime = 0;
+function safePushBullet(b) {
+  try {
+    const now = Date.now();
+    const MIN_DT = 120; // ms
+    if (now - lastFireTime < MIN_DT) {
+      pushDebugEvent(`SKIP_PUSH_RATE dt=${now-lastFireTime}`);
+      return false;
+    }
+    bullets.push(b);
+    lastFireTime = now;
+    return true;
+  } catch (e) { return false; }
+}
 // 마지막 포인터 위치(마우스/터치)를 추적
 let lastPointer = { x: 400, y: 240 };
 let charge = 0;
@@ -142,8 +157,8 @@ function addTouchFlash(x, y, id, kind = 'none') {
     }
     // 만약 정상 발사가 화면에 표시되지 않는 경우를 대비해 시각적 디버그 전용 총알을 강제 생성
     try {
-      const dbg = { x: player.x, y: player.y, vx: 0, vy: 0, debugOnly: true, _r: 16, _expire: Date.now() + 1200, color: '#ff00ff' };
-      bullets.push(dbg);
+  const dbg = { x: player.x, y: player.y, vx: 0, vy: 0, debugOnly: true, _r: 16, _expire: Date.now() + 1200, color: '#ff00ff' };
+  safePushBullet(dbg);
       persistentDebugBullets.push({ x: dbg.x, y: dbg.y, r: dbg._r, color: dbg.color, t: Date.now(), life: 1200 });
       showDebugDOM('FORCED DEBUG BULLET', 900);
       pushDebugEvent(`FORCED_DEBUG_BULLET id=${id}`);
@@ -160,7 +175,7 @@ function addTouchFlash(x, y, id, kind = 'none') {
 function fireNormalTouch(x, y, id) {
   const angle = getAimAngle(x, y, true);
   player.angle = angle;
-  bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
+  safePushBullet({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10 });
   pushDebugEvent(`NORMAL touch fire ang=${angle.toFixed(2)} id=${id}`);
   // 추가 디버그: 직후 bullets 상태
   const b = bullets[bullets.length - 1];
@@ -181,7 +196,7 @@ function fireNormalTouch(x, y, id) {
 function fireBigTouch(x, y, id) {
   const angle = getAimAngle(x, y, true);
   player.angle = angle;
-  bullets.push({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
+  safePushBullet({ x: player.x + Math.cos(angle) * player.r, y: player.y + Math.sin(angle) * player.r, vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5, big: true });
   pushDebugEvent(`BIG touch fire ang=${angle.toFixed(2)} left=${canBigShot-1} id=${id}`);
   const b2 = bullets[bullets.length - 1];
   if (b2) pushDebugEvent(`BULLET_PUSHED_BIG id=${id} x=${Math.round(b2.x)} y=${Math.round(b2.y)} vx=${b2.vx.toFixed(1)} vy=${b2.vy.toFixed(1)} total=${bullets.length}`);
