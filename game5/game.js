@@ -524,17 +524,7 @@ function draw() {
       ctx.fillStyle = 'rgba(78,205,196,0.25)';
       ctx.fill();
     }
-    // 슈팅 패드(우하단)
-    ctx.beginPath();
-    ctx.arc(canvas.width-90, canvas.height-90, 60, 0, Math.PI*2);
-    ctx.fillStyle = '#888';
-    ctx.fill();
-    if (touchShoot.active) {
-      ctx.beginPath();
-      ctx.arc(canvas.width-90+touchShoot.dx, canvas.height-90+touchShoot.dy, 30, 0, Math.PI*2);
-      ctx.fillStyle = '#ffe066';
-      ctx.fill();
-    }
+    // 슈팅 패드 UI 렌더링 비활성화 — 터치 입력은 유지되지만 시각적 표시를 하지 않습니다.
     ctx.restore();
   }
   
